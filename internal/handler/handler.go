@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"github.com/spitfy/gofermart/internal/auth"
 	"github.com/spitfy/gofermart/internal/model"
 	"github.com/spitfy/gofermart/internal/repository"
 	"net/http"
@@ -37,7 +38,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if _, err = h.s.Auth.CreateToken(w, id); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
@@ -46,17 +47,18 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var user model.User
 	if decodeJSONBody(w, r, &user) {
-
 		return
 	}
-	ok, err := h.s.UserService.LoginUser(r.Context(), user)
-	if err != nil {
+	id, err := h.s.UserService.LoginUser(r.Context(), user)
+	if errors.Is(err, auth.ErrUnAuth) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	} else if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+	if _, err = h.s.Auth.CreateToken(w, id); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 	w.WriteHeader(http.StatusOK)
 }

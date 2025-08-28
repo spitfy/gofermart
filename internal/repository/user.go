@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ErrExistsUser = errors.New("User already exists")
+	ErrExistsUser = errors.New("user already exists")
 )
 
 func (s *DBStore) RegisterUser(ctx context.Context, user model.User) (int, error) {
@@ -29,14 +29,19 @@ func (s *DBStore) RegisterUser(ctx context.Context, user model.User) (int, error
 	}
 }
 
-func (s *DBStore) PassByLogin(ctx context.Context, login string) (string, error) {
+func (s *DBStore) PassByLogin(ctx context.Context, login string) (model.AuthUser, error) {
+	var id int
 	var password string
 	err := s.conn.QueryRow(ctx,
-		`SELECT password FROM users WHERE login = $1)`,
+		`SELECT id, password FROM users WHERE login = $1`,
 		login,
-	).Scan(&password)
+	).Scan(&id, &password)
 	if err != nil {
-		return "", err
+		return model.AuthUser{}, err
 	}
-	return password, nil
+	return model.AuthUser{
+		ID:       id,
+		Login:    login,
+		Password: password,
+	}, nil
 }
