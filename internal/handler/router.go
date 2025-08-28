@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/spitfy/gofermart/internal/auth"
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/service"
+	"mime"
 	"net/http"
 )
 
@@ -19,14 +22,27 @@ func newRouter(h *Handler) *chi.Mux {
 	return r
 }
 
-func newHandler(userService *service.UserService) *Handler {
+type Service struct {
+	Auth        *auth.AuthManager
+	UserService *service.UserService
+}
+
+type Handler struct {
+	s Service
+}
+
+func newHandler(service Service) *Handler {
 	return &Handler{
-		UserService: userService,
+		s: service,
 	}
 }
 
 func Serve(cfg *config.Config, userService *service.UserService) error {
-	h := newHandler(userService)
+	s := Service{
+		Auth:        auth.New(cfg.Auth.SecretKey),
+		UserService: userService,
+	}
+	h := newHandler(s)
 	router := newRouter(h)
 	server := &http.Server{
 		Addr:    cfg.Handler.RunAddress,
@@ -39,4 +55,23 @@ func Serve(cfg *config.Config, userService *service.UserService) error {
 var allowedContent = map[string]bool{
 	"application/json":   true,
 	"application/x-gzip": true,
+}
+
+func validateContentType(w http.ResponseWriter, r *http.Request) bool {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || !allowedContent[mediaType] {
+		w.WriteHeader(http.StatusBadRequest)
+		return false
+	}
+	return true
+}
+
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) bool {
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields() // запрещать поля, которых нет в структуре
+	if err := dec.Decode(&dst); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return true
+	}
+	return false
 }

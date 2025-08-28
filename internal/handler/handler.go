@@ -1,14 +1,11 @@
 package handler
 
 import (
-	"github.com/spitfy/gofermart/internal/service"
-	"mime"
+	"errors"
+	"github.com/spitfy/gofermart/internal/model"
+	"github.com/spitfy/gofermart/internal/repository"
 	"net/http"
 )
-
-type Handler struct {
-	UserService *service.UserService
-}
 
 /*
 POST /api/user/register — регистрация пользователя;
@@ -21,16 +18,47 @@ GET /api/user/withdrawals — получение информации о выв�
 */
 
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	if ok := validateContentType(w, r); !ok {
+		return
+	}
+	var user model.User
+	if decodeJSONBody(w, r, &user) {
+		return
+	}
+
+	id, err := h.s.UserService.RegisterUser(r.Context(), user)
+	if errors.Is(err, repository.ErrExistsUser) {
+		w.WriteHeader(http.StatusConflict)
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	if _, err = h.s.Auth.CreateToken(w, id); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
-	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil || !allowedContent[mediaType] {
-		w.WriteHeader(http.StatusBadRequest)
+	if ok := validateContentType(w, r); !ok {
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	var user model.User
+	if decodeJSONBody(w, r, &user) {
+
+		return
+	}
+	ok, err := h.s.UserService.LoginUser(r.Context(), user)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
