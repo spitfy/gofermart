@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/spitfy/gofermart/internal/auth"
 	"github.com/spitfy/gofermart/internal/model"
@@ -114,7 +115,25 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListOrders(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusCreated)
+	userID, ok := r.Context().Value("userID").(int)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	orders, err := h.s.OrderService.ListOrders(r.Context(), userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if len(orders) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err = json.NewEncoder(w).Encode(orders); err != nil {
+		http.Error(w, "encoding error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) GetUserBalance(w http.ResponseWriter, r *http.Request) {

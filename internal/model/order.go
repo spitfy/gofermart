@@ -17,11 +17,11 @@ const (
 
 type Order struct {
 	ID          int         `json:"-"`
-	UserID      int         `json:"user_id"`
+	UserID      int         `json:"-"`
 	OrderNumber string      `json:"order_number"`
 	Status      OrderStatus `json:"status"`
 	Accrual     float64     `json:"accrual"`
-	CreatedAt   time.Time   `json:"-"`
+	CreatedAt   time.Time   `json:"uploaded_at"`
 }
 
 func (os OrderStatus) IsValid() bool {

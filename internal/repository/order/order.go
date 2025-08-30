@@ -47,3 +47,28 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 		return order, nil
 	}
 }
+
+func (s *Store) ListOrders(ctx context.Context, userID int) ([]model.Order, error) {
+	rows, err := s.Conn.Query(
+		ctx,
+		"SELECT status, order_number, accrual, created_at FROM orders WHERE user_id=$1",
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []model.Order
+	for rows.Next() {
+		var o model.Order
+		if err = rows.Scan(&o.Status, &o.OrderNumber, &o.Accrual, &o.CreatedAt); err != nil {
+			return nil, err
+		}
+		orders = append(orders, o)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return orders, nil
+}

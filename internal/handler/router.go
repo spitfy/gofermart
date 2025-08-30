@@ -16,6 +16,7 @@ func newRouter(h *Handler) *chi.Mux {
 	r.Post("/api/user/register", h.RegisterUser)
 	r.Post("/api/user/login", h.LoginUser)
 	r.Post("/api/user/orders", h.authMiddleware(h.CreateOrder))
+	r.Get("/api/user/orders", h.authMiddleware(h.ListOrders))
 	r.Get("/api/user/balance", h.authMiddleware(h.GetUserBalance))
 	r.Get("/api/user/withdrawals", h.authMiddleware(h.ListWithdrawals))
 	r.Post("/api/user/balance/withdraw", h.authMiddleware(h.WithdrawBalance))

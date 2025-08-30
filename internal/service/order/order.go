@@ -18,6 +18,7 @@ type Service struct {
 
 type Storer interface {
 	AddOrder(ctx context.Context, order model.Order) (model.Order, error)
+	ListOrders(ctx context.Context, UserID int) ([]model.Order, error)
 }
 
 func NewService(cfg *config.Config, store Storer) *Service {
@@ -41,4 +42,8 @@ func (s *Service) AddOrder(ctx context.Context, userID int, OrderNumber string) 
 		return "", ErrExistsOrderNum
 	}
 	return o.Status, nil
+}
+
+func (s *Service) ListOrders(ctx context.Context, userID int) ([]model.Order, error) {
+	return s.s.ListOrders(ctx, userID)
 }
