@@ -4,7 +4,10 @@ import (
 	"errors"
 	"github.com/spitfy/gofermart/internal/auth"
 	"github.com/spitfy/gofermart/internal/model"
-	"github.com/spitfy/gofermart/internal/repository"
+	storeUser "github.com/spitfy/gofermart/internal/repository/user"
+	"github.com/spitfy/gofermart/internal/service/order"
+	"io"
+	"mime"
 	"net/http"
 )
 
@@ -28,7 +31,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := h.s.UserService.RegisterUser(r.Context(), user)
-	if errors.Is(err, repository.ErrExistsUser) {
+	if errors.Is(err, storeUser.ErrExistsUser) {
 		w.WriteHeader(http.StatusConflict)
 	}
 	if err != nil {
@@ -64,7 +67,50 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusCreated)
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "text/plain" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil || len(body) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
+	userID, ok := r.Context().Value("userID").(int)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	status, err := h.s.OrderService.AddOrder(r.Context(), userID, string(body))
+	switch {
+	case errors.Is(err, order.ErrExistsOrderNum):
+		w.WriteHeader(http.StatusConflict)
+		return
+	case err != nil:
+		w.WriteHeader(http.StatusInternalServerError)
+	default:
+		switch status {
+		case model.StatusNew:
+			w.WriteHeader(http.StatusAccepted)
+		default:
+			w.WriteHeader(http.StatusOK)
+		}
+	}
+	/*
+		200 — номер заказа уже был загружен этим пользователем;
+		202 — новый номер заказа принят в обработку;
+		400 — неверный формат запроса;
+		401 — пользователь не аутентифицирован;
+		409 — номер заказа уже был загружен другим пользователем;
+		422 — неверный формат номера заказа;
+		500 — внутренняя ошибка сервера.
+	*/
 }
 
 func (h *Handler) ListOrders(w http.ResponseWriter, r *http.Request) {

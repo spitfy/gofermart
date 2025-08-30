@@ -1,4 +1,4 @@
-package repository
+package user
 
 import (
 	"context"
@@ -6,15 +6,26 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spitfy/gofermart/internal/model"
+	"github.com/spitfy/gofermart/internal/repository"
 )
 
 var (
 	ErrExistsUser = errors.New("user already exists")
 )
 
-func (s *DBStore) RegisterUser(ctx context.Context, user model.User) (int, error) {
+type Store struct {
+	*repository.DBStore
+}
+
+func NewStore(db *repository.DBStore) *Store {
+	return &Store{
+		DBStore: db,
+	}
+}
+
+func (s *Store) RegisterUser(ctx context.Context, user model.User) (int, error) {
 	var id int
-	err := s.conn.QueryRow(ctx,
+	err := s.Conn.QueryRow(ctx,
 		`INSERT INTO users (login, password) VALUES ($1, $2) RETURNING id`,
 		user.Login, user.Password,
 	).Scan(&id)
@@ -29,10 +40,10 @@ func (s *DBStore) RegisterUser(ctx context.Context, user model.User) (int, error
 	}
 }
 
-func (s *DBStore) PassByLogin(ctx context.Context, login string) (model.AuthUser, error) {
+func (s *Store) PassByLogin(ctx context.Context, login string) (model.AuthUser, error) {
 	var id int
 	var password string
-	err := s.conn.QueryRow(ctx,
+	err := s.Conn.QueryRow(ctx,
 		`SELECT id, password FROM users WHERE login = $1`,
 		login,
 	).Scan(&id, &password)

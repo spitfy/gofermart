@@ -5,7 +5,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/spitfy/gofermart/internal/auth"
 	"github.com/spitfy/gofermart/internal/config"
-	"github.com/spitfy/gofermart/internal/service"
+	"github.com/spitfy/gofermart/internal/service/order"
+	"github.com/spitfy/gofermart/internal/service/user"
 	"mime"
 	"net/http"
 )
@@ -14,17 +15,18 @@ func newRouter(h *Handler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Post("/api/user/register", h.RegisterUser)
 	r.Post("/api/user/login", h.LoginUser)
-	r.Post("/api/user/orders", h.CreateOrder)
-	r.Get("/api/user/balance", h.GetUserBalance)
-	r.Get("/api/user/withdrawals", h.ListWithdrawals)
-	r.Post("/api/user/balance/withdraw", h.WithdrawBalance)
+	r.Post("/api/user/orders", h.authMiddleware(h.CreateOrder))
+	r.Get("/api/user/balance", h.authMiddleware(h.GetUserBalance))
+	r.Get("/api/user/withdrawals", h.authMiddleware(h.ListWithdrawals))
+	r.Post("/api/user/balance/withdraw", h.authMiddleware(h.WithdrawBalance))
 
 	return r
 }
 
 type Service struct {
-	Auth        *auth.AuthManager
-	UserService *service.UserService
+	Auth         *auth.AuthManager
+	UserService  *user.Service
+	OrderService *order.Service
 }
 
 type Handler struct {
@@ -37,12 +39,8 @@ func newHandler(service Service) *Handler {
 	}
 }
 
-func Serve(cfg *config.Config, userService *service.UserService) error {
-	s := Service{
-		Auth:        auth.New(cfg.Auth.SecretKey),
-		UserService: userService,
-	}
-	h := newHandler(s)
+func Serve(cfg *config.Config, service Service) error {
+	h := newHandler(service)
 	router := newRouter(h)
 	server := &http.Server{
 		Addr:    cfg.Handler.RunAddress,

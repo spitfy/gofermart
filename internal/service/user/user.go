@@ -1,4 +1,4 @@
-package service
+package user
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserService struct {
+type Service struct {
 	cfg *config.Config
 	s   Storer
 }
@@ -16,17 +16,16 @@ type UserService struct {
 type Storer interface {
 	RegisterUser(ctx context.Context, user model.User) (int, error)
 	PassByLogin(ctx context.Context, login string) (model.AuthUser, error)
-	Close()
 }
 
-func NewUserService(cfg *config.Config, store Storer) *UserService {
-	return &UserService{
+func NewService(cfg *config.Config, store Storer) *Service {
+	return &Service{
 		cfg: cfg,
 		s:   store,
 	}
 }
 
-func (us *UserService) RegisterUser(ctx context.Context, user model.User) (int, error) {
+func (us *Service) RegisterUser(ctx context.Context, user model.User) (int, error) {
 	hash, err := hashPassword(user.Password)
 	if err != nil {
 		return 0, err
@@ -35,7 +34,7 @@ func (us *UserService) RegisterUser(ctx context.Context, user model.User) (int, 
 	return us.s.RegisterUser(ctx, user)
 }
 
-func (us *UserService) LoginUser(ctx context.Context, user model.User) (int, error) {
+func (us *Service) LoginUser(ctx context.Context, user model.User) (int, error) {
 	u, err := us.s.PassByLogin(ctx, user.Login)
 	if err != nil {
 		return -1, err

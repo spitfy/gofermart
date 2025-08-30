@@ -9,7 +9,7 @@ import (
 
 type DBStore struct {
 	conf *config.Config
-	conn *pgxpool.Pool
+	Conn *pgxpool.Pool
 }
 
 func NewDBStore(conf *config.Config) (*DBStore, error) {
@@ -40,5 +40,5 @@ func migrate(conf *config.Config) error {
 }
 
 func (s *DBStore) Close() {
-	s.conn.Close()
+	s.Conn.Close()
 }
