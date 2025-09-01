@@ -10,6 +10,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strconv"
 )
 
 /*
@@ -88,7 +89,14 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	status, err := h.s.OrderService.AddOrder(r.Context(), userID, string(body))
+	orderNum := string(body)
+	_, err = strconv.Atoi(orderNum)
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+
+	status, err := h.s.OrderService.AddOrder(r.Context(), userID, orderNum)
 	switch {
 	case errors.Is(err, order.ErrExistsOrderNum):
 		w.WriteHeader(http.StatusConflict)
