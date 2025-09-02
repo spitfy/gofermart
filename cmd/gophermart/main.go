@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/spitfy/gofermart/internal/auth"
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/handler"
+	"github.com/spitfy/gofermart/internal/middleware/auth"
+	"github.com/spitfy/gofermart/internal/middleware/logger"
 	"github.com/spitfy/gofermart/internal/repository"
 	"github.com/spitfy/gofermart/internal/repository/balance"
 	"github.com/spitfy/gofermart/internal/repository/order"
@@ -38,10 +39,16 @@ func run() (err error) {
 	orderStore := order.NewStore(store)
 	os := serviceOrder.NewService(cfg, orderStore, as)
 
+	l, err := logger.Initialize(cfg.Logger.LogLevel)
+	if err != nil {
+		return err
+	}
+
 	s := handler.Service{
 		Auth:         auth.New(cfg.Auth.SecretKey),
 		UserService:  us,
 		OrderService: os,
+		Logger:       l,
 	}
 
 	return handler.Serve(cfg, s)

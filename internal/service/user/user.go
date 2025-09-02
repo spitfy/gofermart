@@ -2,8 +2,8 @@ package user
 
 import (
 	"context"
-	"github.com/spitfy/gofermart/internal/auth"
 	"github.com/spitfy/gofermart/internal/config"
+	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )

@@ -3,7 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"github.com/spitfy/gofermart/internal/auth"
+	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/model"
 	storeUser "github.com/spitfy/gofermart/internal/repository/user"
 	"github.com/spitfy/gofermart/internal/service/order"

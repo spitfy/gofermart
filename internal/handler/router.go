@@ -3,8 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
-	"github.com/spitfy/gofermart/internal/auth"
 	"github.com/spitfy/gofermart/internal/config"
+	"github.com/spitfy/gofermart/internal/middleware/auth"
+	"github.com/spitfy/gofermart/internal/middleware/logger"
 	"github.com/spitfy/gofermart/internal/service/order"
 	"github.com/spitfy/gofermart/internal/service/user"
 	"mime"
@@ -13,13 +14,13 @@ import (
 
 func newRouter(h *Handler) *chi.Mux {
 	r := chi.NewRouter()
-	r.Post("/api/user/register", h.RegisterUser)
-	r.Post("/api/user/login", h.LoginUser)
-	r.Post("/api/user/orders", h.authMiddleware(h.CreateOrder))
-	r.Get("/api/user/orders", h.authMiddleware(h.ListOrders))
-	r.Get("/api/user/balance", h.authMiddleware(h.GetUserBalance))
-	r.Get("/api/user/withdrawals", h.authMiddleware(h.ListWithdrawals))
-	r.Post("/api/user/balance/withdraw", h.authMiddleware(h.WithdrawBalance))
+	r.Post("/api/user/register", h.s.Logger.LogInfo(h.RegisterUser))
+	r.Post("/api/user/login", h.s.Logger.LogInfo(h.LoginUser))
+	r.Post("/api/user/orders", h.s.Logger.LogInfo(h.authMiddleware(h.CreateOrder)))
+	r.Get("/api/user/orders", h.s.Logger.LogInfo(h.authMiddleware(h.ListOrders)))
+	r.Get("/api/user/balance", h.s.Logger.LogInfo(h.authMiddleware(h.GetUserBalance)))
+	r.Get("/api/user/withdrawals", h.s.Logger.LogInfo(h.authMiddleware(h.ListWithdrawals)))
+	r.Post("/api/user/balance/withdraw", h.s.Logger.LogInfo(h.authMiddleware(h.WithdrawBalance)))
 
 	return r
 }
@@ -28,6 +29,7 @@ type Service struct {
 	Auth         *auth.AuthManager
 	UserService  *user.Service
 	OrderService *order.Service
+	Logger       *logger.Logger
 }
 
 type Handler struct {
