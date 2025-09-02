@@ -19,7 +19,7 @@ type Config struct {
 
 const (
 	DefaultRunAddress     string = ":8080"
-	DefaultAccrualAddress string = ":8082"
+	DefaultAccrualAddress string = "http://localhost:8082"
 	DefaultDatabaseURI    string = "postgres://postgres:postgres@localhost:5432/gofermart?sslmode=disable"
 	SecretKey             string = "**SecRetKey#!45**"
 )

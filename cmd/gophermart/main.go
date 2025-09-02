@@ -5,7 +5,7 @@ import (
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/handler"
 	"github.com/spitfy/gofermart/internal/repository"
-	bt "github.com/spitfy/gofermart/internal/repository/balance_transaction"
+	"github.com/spitfy/gofermart/internal/repository/balance"
 	"github.com/spitfy/gofermart/internal/repository/order"
 	"github.com/spitfy/gofermart/internal/repository/user"
 	serviceAccrual "github.com/spitfy/gofermart/internal/service/external/accrual"
@@ -32,8 +32,8 @@ func run() (err error) {
 	userStore := user.NewStore(store)
 	us := serviceUser.NewService(cfg, userStore)
 
-	btStore := bt.NewStore(store)
-	as := serviceAccrual.NewService(cfg, btStore)
+	balanceStore := balance.NewStore(store)
+	as := serviceAccrual.NewService(cfg, balanceStore)
 
 	orderStore := order.NewStore(store)
 	os := serviceOrder.NewService(cfg, orderStore, as)

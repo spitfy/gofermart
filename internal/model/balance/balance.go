@@ -1,4 +1,4 @@
-package balance_transaction
+package balance
 
 import "time"
 
