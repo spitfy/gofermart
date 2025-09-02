@@ -65,7 +65,8 @@ func (s *Service) Call(userID int, orderNumber string) {
 }
 
 func (s *Service) prepare(userID int, resp []byte) (balance.BalanceTransaction, error) {
-	resp = []byte("{\n      \"order\": \"123\",\n      \"status\": \"PROCESSED\",\n      \"accrual\": 500\n  }")
+	//todo
+	//resp = []byte("{\n      \"order\": \"123\",\n      \"status\": \"PROCESSED\",\n      \"accrual\": 500\n  }")
 	var a accrual.Response
 	dec := json.NewDecoder(bytes.NewReader(resp))
 	dec.DisallowUnknownFields()
