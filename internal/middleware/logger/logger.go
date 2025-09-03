@@ -15,6 +15,7 @@ type (
 	responseData struct {
 		status int
 		size   int
+		body   []byte
 	}
 
 	// добавляем реализацию http.ResponseWriter
@@ -46,7 +47,7 @@ func (l *Logger) LogInfo(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		lw := loggingResponseWriter{
 			ResponseWriter: w,
-			responseData:   &responseData{status: 0, size: 0},
+			responseData:   &responseData{status: 0, size: 0, body: []byte{}},
 		}
 
 		start := time.Now()
@@ -59,6 +60,7 @@ func (l *Logger) LogInfo(h http.HandlerFunc) http.HandlerFunc {
 			zap.Duration("duration", duration),
 			zap.Int("status", lw.responseData.status),
 			zap.Int("size", lw.responseData.size),
+			zap.ByteString("body", lw.responseData.body),
 		)
 	}
 }
@@ -66,6 +68,7 @@ func (l *Logger) LogInfo(h http.HandlerFunc) http.HandlerFunc {
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.responseData.size += size
+	r.responseData.body = b
 	return size, err
 }
 
