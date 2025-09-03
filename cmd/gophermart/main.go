@@ -6,7 +6,6 @@ import (
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/middleware/logger"
 	"github.com/spitfy/gofermart/internal/repository"
-	"github.com/spitfy/gofermart/internal/repository/balance"
 	"github.com/spitfy/gofermart/internal/repository/order"
 	"github.com/spitfy/gofermart/internal/repository/user"
 	serviceAccrual "github.com/spitfy/gofermart/internal/service/external/accrual"
@@ -33,10 +32,9 @@ func run() (err error) {
 	userStore := user.NewStore(store)
 	us := serviceUser.NewService(cfg, userStore)
 
-	balanceStore := balance.NewStore(store)
-	as := serviceAccrual.NewService(cfg, balanceStore)
-
+	//balanceStore := balance.NewStore(store)
 	orderStore := order.NewStore(store)
+	as := serviceAccrual.NewService(cfg, orderStore)
 	os := serviceOrder.NewService(cfg, orderStore, as)
 
 	l, err := logger.Initialize(cfg.Logger.LogLevel)

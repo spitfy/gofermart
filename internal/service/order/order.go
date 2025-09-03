@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/model"
+	"github.com/spitfy/gofermart/internal/repository/order"
 	accrualServ "github.com/spitfy/gofermart/internal/service/external/accrual"
 )
 
@@ -14,16 +15,11 @@ var (
 
 type Service struct {
 	cfg *config.Config
-	s   Storer
+	s   order.Storer
 	as  *accrualServ.Service
 }
 
-type Storer interface {
-	AddOrder(ctx context.Context, order model.Order) (model.Order, error)
-	ListOrders(ctx context.Context, UserID int) ([]model.Order, error)
-}
-
-func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Service {
+func NewService(cfg *config.Config, store order.Storer, as *accrualServ.Service) *Service {
 	return &Service{
 		cfg: cfg,
 		s:   store,
@@ -33,9 +29,9 @@ func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Serv
 
 func (s *Service) AddOrder(ctx context.Context, userID int, orderNumber string) (model.OrderStatus, error) {
 	order := model.Order{
-		UserID:      userID,
-		OrderNumber: orderNumber,
-		Status:      model.StatusNew,
+		UserID: userID,
+		Number: orderNumber,
+		Status: model.StatusNew,
 	}
 	o, err := s.s.AddOrder(ctx, order)
 	if err != nil {

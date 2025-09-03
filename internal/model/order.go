@@ -16,12 +16,12 @@ const (
 )
 
 type Order struct {
-	ID          int         `json:"-"`
-	UserID      int         `json:"-"`
-	OrderNumber string      `json:"number"`
-	Status      OrderStatus `json:"status"`
-	Accrual     float64     `json:"accrual"`
-	CreatedAt   time.Time   `json:"uploaded_at"`
+	ID        int         `json:"-"`
+	UserID    int         `json:"-"`
+	Number    string      `json:"number"`
+	Status    OrderStatus `json:"status"`
+	Accrual   float64     `json:"accrual"`
+	CreatedAt time.Time   `json:"uploaded_at"`
 }
 
 func (os OrderStatus) IsValid() bool {
