@@ -24,6 +24,11 @@ type Order struct {
 	CreatedAt time.Time   `json:"uploaded_at"`
 }
 
+type Balance struct {
+	Accrual   float64 `json:"accrual"`
+	Withdrawn float64 `json:"withdrawn"`
+}
+
 func (os OrderStatus) IsValid() bool {
 	switch os {
 	case StatusNew, StatusProcessing, StatusInvalid, StatusProcessed:

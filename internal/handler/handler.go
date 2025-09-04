@@ -146,7 +146,22 @@ func (h *Handler) ListOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusCreated)
+	userID, ok := r.Context().Value("userID").(int)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	balance, err := h.s.OrderService.Balance(r.Context(), userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err = json.NewEncoder(w).Encode(balance); err != nil {
+		http.Error(w, "encoding error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) WithdrawBalance(w http.ResponseWriter, r *http.Request) {
