@@ -96,6 +96,6 @@ func (s *Store) Balance(ctx context.Context, userID int) (model.Balance, error) 
 		`select (select coalesce(SUM(accrual), 0) from orders WHERE user_id = $1), 
        				(select coalesce(SUM(amount), 0) from withdrawals where user_id = $1)`,
 		userID,
-	).Scan(&balance.Accrual, &balance.Withdrawn)
+	).Scan(&balance.Current, &balance.Withdrawn)
 	return balance, err
 }

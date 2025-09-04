@@ -25,7 +25,7 @@ type Order struct {
 }
 
 type Balance struct {
-	Accrual   float64 `json:"accrual"`
+	Current   float64 `json:"current"`
 	Withdrawn float64 `json:"withdrawn"`
 }
 
