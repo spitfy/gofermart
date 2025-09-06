@@ -25,3 +25,7 @@ func (s *Service) Add(ctx context.Context, userID int, req Request) error {
 	}
 	return s.s.Add(ctx, m)
 }
+
+func (s *Service) List(ctx context.Context, userID int) ([]Withdraw, error) {
+	return s.s.List(ctx, userID)
+}

@@ -21,6 +21,7 @@ type Storer interface {
 	RegisterUser(ctx context.Context, user model.User) (int, error)
 	PassByLogin(ctx context.Context, login string) (model.AuthUser, error)
 	Balance(ctx context.Context, userID int) (model.Balance, error)
+	UserBalance(ctx context.Context, userID int) (float64, error)
 }
 
 func NewStore(db *repository.DBStore) *Store {
@@ -61,6 +62,15 @@ func (s *Store) PassByLogin(ctx context.Context, login string) (model.AuthUser, 
 		Login:    login,
 		Password: password,
 	}, nil
+}
+
+func (s *Store) UserBalance(ctx context.Context, userID int) (float64, error) {
+	var balance float64
+	err := s.Conn.QueryRow(ctx,
+		`SELECT balance FROM users WHERE id = $1`,
+		userID,
+	).Scan(&balance)
+	return balance, err
 }
 
 func (s *Store) Balance(ctx context.Context, userID int) (model.Balance, error) {
