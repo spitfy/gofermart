@@ -78,6 +78,7 @@ func (s *Service) prepare(userID int, resp []byte) (accrual.Accrual, error) {
 		UserID: userID,
 		Amount: a.Accrual,
 		Number: a.Order,
+		Status: a.Status,
 	}, nil
 }
 
