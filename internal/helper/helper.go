@@ -1,6 +1,9 @@
 package helper
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -26,4 +29,19 @@ func IsValidLuhn(number string) bool {
 	}
 
 	return sum%10 == 0
+}
+
+func FindModuleRoot(dir string) (string, error) {
+	for {
+		gomod := filepath.Join(dir, "go.mod")
+		if _, err := os.Stat(gomod); err == nil {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return "", fmt.Errorf("go.mod not found in any parent directory")
 }
