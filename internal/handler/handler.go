@@ -3,11 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"github.com/spitfy/gofermart/internal/domain/user"
 	"github.com/spitfy/gofermart/internal/domain/withdraw"
 	"github.com/spitfy/gofermart/internal/helper"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
-	"github.com/spitfy/gofermart/internal/model"
-	storeUser "github.com/spitfy/gofermart/internal/repository/user"
 	"github.com/spitfy/gofermart/internal/service/order"
 	"io"
 	"mime"
@@ -18,13 +17,13 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if ok := validateContentType(w, r); !ok {
 		return
 	}
-	var user model.User
-	if decodeJSONBody(w, r, &user) {
+	var u user.User
+	if decodeJSONBody(w, r, &u) {
 		return
 	}
 
-	id, err := h.s.UserService.RegisterUser(r.Context(), user)
-	if errors.Is(err, storeUser.ErrExistsUser) {
+	id, err := h.s.UserService.RegisterUser(r.Context(), u)
+	if errors.Is(err, user.ErrExistsUser) {
 		w.WriteHeader(http.StatusConflict)
 	}
 	if err != nil {
@@ -41,11 +40,11 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	if ok := validateContentType(w, r); !ok {
 		return
 	}
-	var user model.User
-	if decodeJSONBody(w, r, &user) {
+	var u user.User
+	if decodeJSONBody(w, r, &u) {
 		return
 	}
-	id, err := h.s.UserService.LoginUser(r.Context(), user)
+	id, err := h.s.UserService.LoginUser(r.Context(), u)
 	if errors.Is(err, auth.ErrUnAuth) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return

@@ -18,8 +18,8 @@ type Store struct {
 }
 
 type Storer interface {
-	RegisterUser(ctx context.Context, user model.User) (int, error)
-	PassByLogin(ctx context.Context, login string) (model.AuthUser, error)
+	RegisterUser(ctx context.Context, user User) (int, error)
+	PassByLogin(ctx context.Context, login string) (AuthUser, error)
 	Balance(ctx context.Context, userID int) (model.Balance, error)
 	UserBalance(ctx context.Context, userID int) (float64, error)
 }
@@ -30,7 +30,7 @@ func NewStore(db *repository.DBStore) *Store {
 	}
 }
 
-func (s *Store) RegisterUser(ctx context.Context, user model.User) (int, error) {
+func (s *Store) RegisterUser(ctx context.Context, user User) (int, error) {
 	var id int
 	err := s.Conn.QueryRow(ctx,
 		`INSERT INTO users (login, password) VALUES ($1, $2) RETURNING id`,
@@ -47,7 +47,7 @@ func (s *Store) RegisterUser(ctx context.Context, user model.User) (int, error) 
 	}
 }
 
-func (s *Store) PassByLogin(ctx context.Context, login string) (model.AuthUser, error) {
+func (s *Store) PassByLogin(ctx context.Context, login string) (AuthUser, error) {
 	var id int
 	var password string
 	err := s.Conn.QueryRow(ctx,
@@ -55,9 +55,9 @@ func (s *Store) PassByLogin(ctx context.Context, login string) (model.AuthUser, 
 		login,
 	).Scan(&id, &password)
 	if err != nil {
-		return model.AuthUser{}, err
+		return AuthUser{}, err
 	}
-	return model.AuthUser{
+	return AuthUser{
 		ID:       id,
 		Login:    login,
 		Password: password,
