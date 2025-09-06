@@ -94,11 +94,11 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	case err != nil:
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	default:
-		switch status {
-		case model.StatusNew:
+		if status == "" {
 			w.WriteHeader(http.StatusAccepted)
-		default:
+		} else {
 			w.WriteHeader(http.StatusOK)
 		}
 	}

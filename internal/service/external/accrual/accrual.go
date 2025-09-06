@@ -67,7 +67,7 @@ func (s *Service) Call(userID int, orderNumber string) {
 
 func (s *Service) prepare(userID int, resp []byte) (accrual.Accrual, error) {
 	//todo
-	//resp = []byte("{\n      \"order\": \"123\",\n      \"status\": \"PROCESSED\",\n      \"accrual\": 500\n  }")
+	//resp = []byte("{\n      \"order\": \"1233455\",\n      \"status\": \"PROCESSED\",\n      \"accrual\": 500\n  }")
 	var a Response
 	dec := json.NewDecoder(bytes.NewReader(resp))
 	dec.DisallowUnknownFields()
