@@ -10,7 +10,6 @@ import (
 	storeUser "github.com/spitfy/gofermart/internal/repository/user"
 	"github.com/spitfy/gofermart/internal/service/order"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 )
@@ -87,21 +86,19 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := h.s.OrderService.AddOrder(r.Context(), userID, orderNum)
-	log.Println("====== status: ", status)
+	err = h.s.OrderService.AddOrder(r.Context(), userID, orderNum)
 	switch {
-	case errors.Is(err, order.ErrExistsOrderNum):
+	case errors.Is(err, order.ErrOrderAnotherUser):
 		w.WriteHeader(http.StatusConflict)
+		return
+	case errors.Is(err, order.ErrExistsOrder):
+		w.WriteHeader(http.StatusOK)
 		return
 	case err != nil:
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	default:
-		if status == "" {
-			w.WriteHeader(http.StatusAccepted)
-		} else {
-			w.WriteHeader(http.StatusOK)
-		}
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
