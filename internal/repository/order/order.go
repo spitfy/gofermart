@@ -12,7 +12,6 @@ import (
 type Storer interface {
 	AddOrder(ctx context.Context, order model.Order) (model.Order, error)
 	ListOrders(ctx context.Context, UserID int) ([]model.Order, error)
-	Update(ctx context.Context, order model.Order) error
 	Balance(ctx context.Context, userID int) (model.Balance, error)
 }
 
@@ -26,10 +25,12 @@ func NewStore(db *repository.DBStore) *Store {
 	}
 }
 
+var ErrUniqueNum = errors.New("order number already exists")
+
 func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, error) {
 	_, err := s.Conn.Exec(ctx,
-		`INSERT INTO orders (user_id, order_number, status, accrual) VALUES ($1, $2, $3, $4)`,
-		order.UserID, order.Number, order.Status, order.Accrual,
+		`INSERT INTO orders (user_id, number) VALUES ($1, $2)`,
+		order.UserID, order.Number,
 	)
 	var pgErr *pgconn.PgError
 	switch {
@@ -38,7 +39,10 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 		var status model.OrderStatus
 		err = s.Conn.QueryRow(
 			ctx,
-			"SELECT user_id, status FROM orders WHERE order_number=$1",
+			`SELECT o.user_id, a.status 
+				   FROM orders o  
+				   		left join accruals a on a.order_id = o.id 
+				  WHERE number=$1`,
 			order.Number,
 		).Scan(&userID, &status)
 		if err != nil {
@@ -47,7 +51,7 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 		return model.Order{
 			UserID: userID,
 			Status: status,
-		}, nil
+		}, ErrUniqueNum
 	case err != nil:
 		return order, err
 	default:
@@ -58,7 +62,10 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 func (s *Store) ListOrders(ctx context.Context, userID int) ([]model.Order, error) {
 	rows, err := s.Conn.Query(
 		ctx,
-		"SELECT status, order_number, accrual, created_at FROM orders WHERE user_id=$1",
+		`SELECT a.status, o.number, a.amount, o.created_at 
+			   FROM orders o
+					left join accruals a on o.id = a.order_id
+			  WHERE o.user_id = $1`,
 		userID,
 	)
 	if err != nil {
@@ -78,15 +85,6 @@ func (s *Store) ListOrders(ctx context.Context, userID int) ([]model.Order, erro
 		return nil, err
 	}
 	return orders, nil
-}
-
-func (s *Store) Update(ctx context.Context, order model.Order) error {
-	_, err := s.Conn.Exec(
-		ctx,
-		"UPDATE orders SET status = $1, accrual = $2 WHERE order_number = $3",
-		order.Status, order.Accrual, order.Number,
-	)
-	return err
 }
 
 func (s *Store) Balance(ctx context.Context, userID int) (model.Balance, error) {

@@ -27,20 +27,23 @@ func NewService(cfg *config.Config, store order.Storer, as *accrualServ.Service)
 	}
 }
 
-func (s *Service) AddOrder(ctx context.Context, userID int, orderNumber string) (model.OrderStatus, error) {
+func (s *Service) AddOrder(ctx context.Context, userID int, number string) (model.OrderStatus, error) {
 	m := model.Order{
 		UserID: userID,
-		Number: orderNumber,
-		Status: model.StatusNew,
+		Number: number,
 	}
 	o, err := s.s.AddOrder(ctx, m)
+	if errors.Is(err, order.ErrUniqueNum) {
+		if o.UserID != m.UserID {
+			return "", ErrExistsOrderNum
+		}
+		return "", nil
+	}
 	if err != nil {
 		return "", err
 	}
-	if o.UserID != m.UserID {
-		return "", ErrExistsOrderNum
-	}
-	go s.as.Call(userID, orderNumber)
+
+	go s.as.Call(userID, number)
 	return o.Status, nil
 }
 

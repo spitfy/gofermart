@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/model"
+	"github.com/spitfy/gofermart/internal/model/withdraw"
 	storeUser "github.com/spitfy/gofermart/internal/repository/user"
 	"github.com/spitfy/gofermart/internal/service/order"
 	"io"
@@ -12,16 +13,6 @@ import (
 	"net/http"
 	"strconv"
 )
-
-/*
-POST /api/user/register — регистрация пользователя;
-POST /api/user/login — аутентификация пользователя;
-POST /api/user/orders — загрузка пользователем номера заказа для расчёта;
-GET /api/user/orders — получение списка загруженных пользователем номеров заказов, статусов их обработки и информации о начислениях;
-GET /api/user/balance — получение текущего баланса счёта баллов лояльности пользователя;
-POST /api/user/balance/withdraw — запрос на списание баллов с накопительного счёта в счёт оплаты нового заказа;
-GET /api/user/withdrawals — получение информации о выводе средств с накопительного счёта пользователем.
-*/
 
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if ok := validateContentType(w, r); !ok {
@@ -111,15 +102,6 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}
 	}
-	/*
-		200 — номер заказа уже был загружен этим пользователем;
-		202 — новый номер заказа принят в обработку;
-		400 — неверный формат запроса;
-		401 — пользователь не аутентифицирован;
-		409 — номер заказа уже был загружен другим пользователем;
-		422 — неверный формат номера заказа;
-		500 — внутренняя ошибка сервера.
-	*/
 }
 
 func (h *Handler) ListOrders(w http.ResponseWriter, r *http.Request) {
@@ -165,6 +147,23 @@ func (h *Handler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) WithdrawBalance(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("userID").(int)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	if ok := validateContentType(w, r); !ok {
+		return
+	}
+	var wr withdraw.Request
+	if decodeJSONBody(w, r, &wr) {
+		return
+	}
+	err := h.s.WithdrawService.Add(r.Context(), userID, wr)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusCreated)
 }
 

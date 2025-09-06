@@ -8,6 +8,7 @@ import (
 	"github.com/spitfy/gofermart/internal/middleware/logger"
 	"github.com/spitfy/gofermart/internal/service/order"
 	"github.com/spitfy/gofermart/internal/service/user"
+	"github.com/spitfy/gofermart/internal/service/withdraw"
 	"mime"
 	"net/http"
 )
@@ -26,10 +27,11 @@ func newRouter(h *Handler) *chi.Mux {
 }
 
 type Service struct {
-	Auth         *auth.AuthManager
-	UserService  *user.Service
-	OrderService *order.Service
-	Logger       *logger.Logger
+	Auth            *auth.AuthManager
+	UserService     *user.Service
+	OrderService    *order.Service
+	WithdrawService *withdraw.Service
+	Logger          *logger.Logger
 }
 
 type Handler struct {

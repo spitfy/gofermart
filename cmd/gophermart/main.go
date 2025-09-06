@@ -2,15 +2,18 @@ package main
 
 import (
 	"github.com/spitfy/gofermart/internal/config"
+	"github.com/spitfy/gofermart/internal/domain/accrual"
 	"github.com/spitfy/gofermart/internal/handler"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/middleware/logger"
 	"github.com/spitfy/gofermart/internal/repository"
 	"github.com/spitfy/gofermart/internal/repository/order"
 	"github.com/spitfy/gofermart/internal/repository/user"
+	"github.com/spitfy/gofermart/internal/repository/withdraw"
 	serviceAccrual "github.com/spitfy/gofermart/internal/service/external/accrual"
 	serviceOrder "github.com/spitfy/gofermart/internal/service/order"
 	serviceUser "github.com/spitfy/gofermart/internal/service/user"
+	serviceWithdraw "github.com/spitfy/gofermart/internal/service/withdraw"
 	"log"
 )
 
@@ -32,10 +35,15 @@ func run() (err error) {
 	userStore := user.NewStore(store)
 	us := serviceUser.NewService(cfg, userStore)
 
-	//balanceStore := balance.NewStore(store)
+	accrualStore := accrual.NewStore(store)
+	as := accrual.NewService(cfg, accrualStore)
+
 	orderStore := order.NewStore(store)
-	as := serviceAccrual.NewService(cfg, orderStore)
-	os := serviceOrder.NewService(cfg, orderStore, as)
+	extAs := serviceAccrual.NewService(cfg, as)
+	os := serviceOrder.NewService(cfg, orderStore, extAs)
+
+	withdrawStore := withdraw.NewStore(store)
+	ws := serviceWithdraw.NewService(cfg, withdrawStore)
 
 	l, err := logger.Initialize(cfg.Logger.LogLevel)
 	if err != nil {
@@ -43,10 +51,11 @@ func run() (err error) {
 	}
 
 	s := handler.Service{
-		Auth:         auth.New(cfg.Auth.SecretKey),
-		UserService:  us,
-		OrderService: os,
-		Logger:       l,
+		Auth:            auth.New(cfg.Auth.SecretKey),
+		UserService:     us,
+		OrderService:    os,
+		WithdrawService: ws,
+		Logger:          l,
 	}
 
 	return handler.Serve(cfg, s)

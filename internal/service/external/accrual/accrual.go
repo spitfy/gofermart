@@ -7,28 +7,25 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/spitfy/gofermart/internal/config"
-	"github.com/spitfy/gofermart/internal/model"
-	"github.com/spitfy/gofermart/internal/model/accrual"
-	"github.com/spitfy/gofermart/internal/model/balance"
-	"github.com/spitfy/gofermart/internal/repository/order"
+	"github.com/spitfy/gofermart/internal/domain/accrual"
 	"log"
 	"net/http"
 )
 
 type Storer interface {
-	Add(bt balance.BalanceTransaction) error
+	Add(a accrual.Accrual) error
 }
 
-func NewService(cfg *config.Config, store order.Storer) *Service {
+func NewService(cfg *config.Config, s *accrual.Service) *Service {
 	return &Service{
 		cfg: cfg,
-		s:   store,
+		s:   s,
 	}
 }
 
 type Service struct {
 	cfg    *config.Config
-	s      order.Storer
+	s      *accrual.Service
 	userID int
 }
 
@@ -47,17 +44,18 @@ func (s *Service) Call(userID int, orderNumber string) {
 	}
 	switch resp.StatusCode() {
 	case http.StatusOK:
-		b, err := s.prepare(userID, resp.Body())
+		a, err := s.prepare(userID, resp.Body())
 		if err != nil {
 			log.Println(err)
 		}
-		s.save(b)
+		s.save(a)
 	case http.StatusNoContent:
-		b, err := s.prepare(userID, resp.Body())
+		//todo
+		a, err := s.prepare(userID, resp.Body())
 		if err != nil {
 			log.Println(err)
 		}
-		s.save(b)
+		s.save(a)
 		return
 	case http.StatusTooManyRequests:
 		//todo
@@ -67,25 +65,24 @@ func (s *Service) Call(userID int, orderNumber string) {
 	}
 }
 
-func (s *Service) prepare(userID int, resp []byte) (model.Order, error) {
+func (s *Service) prepare(userID int, resp []byte) (accrual.Accrual, error) {
 	//todo
-	//resp = []byte("{\n      \"order\": \"123\",\n      \"status\": \"PROCESSED\",\n      \"accrual\": 500\n  }")
-	var a accrual.Response
+	resp = []byte("{\n      \"order\": \"123\",\n      \"status\": \"PROCESSED\",\n      \"accrual\": 500\n  }")
+	var a Response
 	dec := json.NewDecoder(bytes.NewReader(resp))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&a); err != nil {
-		return model.Order{}, err
+		return accrual.Accrual{}, err
 	}
-	return model.Order{
-		Number:  a.Order,
-		Status:  model.OrderStatus(a.Status),
-		Accrual: a.Accrual,
-		UserID:  userID,
+	return accrual.Accrual{
+		UserID: userID,
+		Amount: a.Accrual,
+		Number: a.Order,
 	}, nil
 }
 
-func (s *Service) save(order model.Order) {
-	if err := s.s.Update(context.Background(), order); err != nil {
+func (s *Service) save(a accrual.Accrual) {
+	if err := s.s.Add(context.Background(), a); err != nil {
 		log.Println(err)
 	}
 }
