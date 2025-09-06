@@ -22,8 +22,8 @@ func NewStore(db *repository.DBStore) *Store {
 
 func (s *Store) Add(ctx context.Context, w Withdraw) error {
 	_, err := s.Conn.Exec(ctx,
-		`INSERT INTO withdrawals (user_id, order_id, amount) 
-					VALUES ($1, (SELECT o.id FROM orders o WHERE o.number = $2), $3)`,
+		`INSERT INTO withdrawals (user_id, "order", amount) 
+					VALUES ($1, $2, $3)`,
 		w.UserID, w.Order, w.Amount,
 	)
 	return err
@@ -32,9 +32,8 @@ func (s *Store) Add(ctx context.Context, w Withdraw) error {
 func (s *Store) List(ctx context.Context, userID int) ([]Withdraw, error) {
 	rows, err := s.Conn.Query(
 		ctx,
-		`SELECT o.number, w.amount, w.created_at 
+		`SELECT w.order, w.amount, w.created_at 
 			   FROM withdrawals w
-					left join orders o on o.id = w.order_id
 			  WHERE w.user_id = $1`,
 		userID,
 	)
