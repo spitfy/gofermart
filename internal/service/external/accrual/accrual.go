@@ -72,7 +72,6 @@ func (s *Service) prepare(userID int, resp []byte) (accrual.Accrual, error) {
 	if err := dec.Decode(&a); err != nil {
 		return accrual.Accrual{}, err
 	}
-	log.Println("========= accrual2: ", a)
 	if a.Status == "" {
 		a.Status = accrual.StatusNew
 	}

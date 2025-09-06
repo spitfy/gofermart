@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/spitfy/gofermart/internal/model"
 	"github.com/spitfy/gofermart/internal/repository"
 )
 
@@ -20,7 +19,7 @@ type Store struct {
 type Storer interface {
 	RegisterUser(ctx context.Context, user User) (int, error)
 	PassByLogin(ctx context.Context, login string) (AuthUser, error)
-	Balance(ctx context.Context, userID int) (model.Balance, error)
+	Balance(ctx context.Context, userID int) (Balance, error)
 	UserBalance(ctx context.Context, userID int) (float64, error)
 }
 
@@ -73,8 +72,8 @@ func (s *Store) UserBalance(ctx context.Context, userID int) (float64, error) {
 	return balance, err
 }
 
-func (s *Store) Balance(ctx context.Context, userID int) (model.Balance, error) {
-	var balance model.Balance
+func (s *Store) Balance(ctx context.Context, userID int) (Balance, error) {
+	var balance Balance
 	err := s.Conn.QueryRow(
 		ctx,
 		`select (SELECT balance FROM users WHERE id = $1), 

@@ -3,15 +3,14 @@ package main
 import (
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/domain/accrual"
+	"github.com/spitfy/gofermart/internal/domain/order"
 	"github.com/spitfy/gofermart/internal/domain/user"
 	"github.com/spitfy/gofermart/internal/domain/withdraw"
 	"github.com/spitfy/gofermart/internal/handler"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/middleware/logger"
 	"github.com/spitfy/gofermart/internal/repository"
-	"github.com/spitfy/gofermart/internal/repository/order"
 	serviceAccrual "github.com/spitfy/gofermart/internal/service/external/accrual"
-	serviceOrder "github.com/spitfy/gofermart/internal/service/order"
 	"log"
 )
 
@@ -38,7 +37,7 @@ func run() (err error) {
 
 	orderStore := order.NewStore(store)
 	extAs := serviceAccrual.NewService(cfg, as)
-	os := serviceOrder.NewService(cfg, orderStore, extAs)
+	os := order.NewService(cfg, orderStore, extAs)
 
 	withdrawStore := withdraw.NewStore(store)
 	ws := withdraw.NewService(cfg, withdrawStore)
