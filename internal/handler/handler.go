@@ -10,6 +10,7 @@ import (
 	storeUser "github.com/spitfy/gofermart/internal/repository/user"
 	"github.com/spitfy/gofermart/internal/service/order"
 	"io"
+	"log"
 	"mime"
 	"net/http"
 )
@@ -87,6 +88,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status, err := h.s.OrderService.AddOrder(r.Context(), userID, orderNum)
+	log.Println("====== status: ", status)
 	switch {
 	case errors.Is(err, order.ErrExistsOrderNum):
 		w.WriteHeader(http.StatusConflict)
