@@ -80,10 +80,22 @@ func (s *Store) ListOrders(ctx context.Context, userID int) ([]model.Order, erro
 	defer rows.Close()
 
 	var orders []model.Order
+	var status sql.NullString
+	var amount sql.NullFloat64
 	for rows.Next() {
 		var o model.Order
-		if err = rows.Scan(&o.Status, &o.Number, &o.Accrual, &o.CreatedAt); err != nil {
+		if err = rows.Scan(&status, &o.Number, &amount, &o.CreatedAt); err != nil {
 			return nil, err
+		}
+		if status.Valid {
+			o.Status = model.OrderStatus(status.String)
+		} else {
+			o.Status = ""
+		}
+		if amount.Valid {
+			o.Accrual = amount.Float64
+		} else {
+			o.Accrual = 0
 		}
 		orders = append(orders, o)
 	}
