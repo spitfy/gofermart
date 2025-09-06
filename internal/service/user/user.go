@@ -56,6 +56,6 @@ func checkPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func (s *Service) Balance(ctx context.Context, userID int) (model.Balance, error) {
-	return s.s.Balance(ctx, userID)
+func (us *Service) Balance(ctx context.Context, userID int) (model.Balance, error) {
+	return us.s.Balance(ctx, userID)
 }
