@@ -3,17 +3,16 @@ package main
 import (
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/domain/accrual"
+	"github.com/spitfy/gofermart/internal/domain/withdraw"
 	"github.com/spitfy/gofermart/internal/handler"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/middleware/logger"
 	"github.com/spitfy/gofermart/internal/repository"
 	"github.com/spitfy/gofermart/internal/repository/order"
 	"github.com/spitfy/gofermart/internal/repository/user"
-	"github.com/spitfy/gofermart/internal/repository/withdraw"
 	serviceAccrual "github.com/spitfy/gofermart/internal/service/external/accrual"
 	serviceOrder "github.com/spitfy/gofermart/internal/service/order"
 	serviceUser "github.com/spitfy/gofermart/internal/service/user"
-	serviceWithdraw "github.com/spitfy/gofermart/internal/service/withdraw"
 	"log"
 )
 
@@ -43,7 +42,7 @@ func run() (err error) {
 	os := serviceOrder.NewService(cfg, orderStore, extAs)
 
 	withdrawStore := withdraw.NewStore(store)
-	ws := serviceWithdraw.NewService(cfg, withdrawStore)
+	ws := withdraw.NewService(cfg, withdrawStore)
 
 	l, err := logger.Initialize(cfg.Logger.LogLevel)
 	if err != nil {

@@ -3,15 +3,15 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"github.com/spitfy/gofermart/internal/domain/withdraw"
+	"github.com/spitfy/gofermart/internal/helper"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/model"
-	"github.com/spitfy/gofermart/internal/model/withdraw"
 	storeUser "github.com/spitfy/gofermart/internal/repository/user"
 	"github.com/spitfy/gofermart/internal/service/order"
 	"io"
 	"mime"
 	"net/http"
-	"strconv"
 )
 
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -81,26 +81,24 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	orderNum := string(body)
-	_, err = strconv.Atoi(orderNum)
-	if err != nil {
+	if !helper.IsValidLuhn(orderNum) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
-	status, err := h.s.OrderService.AddOrder(r.Context(), userID, orderNum)
+	err = h.s.OrderService.AddOrder(r.Context(), userID, orderNum)
 	switch {
-	case errors.Is(err, order.ErrExistsOrderNum):
+	case errors.Is(err, order.ErrOrderAnotherUser):
 		w.WriteHeader(http.StatusConflict)
+		return
+	case errors.Is(err, order.ErrExistsOrder):
+		w.WriteHeader(http.StatusOK)
 		return
 	case err != nil:
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	default:
-		if status == "" {
-			w.WriteHeader(http.StatusAccepted)
-		} else {
-			w.WriteHeader(http.StatusOK)
-		}
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
@@ -159,14 +157,42 @@ func (h *Handler) WithdrawBalance(w http.ResponseWriter, r *http.Request) {
 	if decodeJSONBody(w, r, &wr) {
 		return
 	}
-	err := h.s.WithdrawService.Add(r.Context(), userID, wr)
+	ok, err := h.s.UserService.CanWithdraw(r.Context(), userID, wr.Sum)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	if !ok {
+		w.WriteHeader(http.StatusPaymentRequired)
+		return
+	}
+	err = h.s.WithdrawService.Add(r.Context(), userID, wr)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) ListWithdrawals(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusCreated)
+	userID, ok := r.Context().Value("userID").(int)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	ws, err := h.s.WithdrawService.List(r.Context(), userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if len(ws) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err = json.NewEncoder(w).Encode(ws); err != nil {
+		http.Error(w, "encoding error", http.StatusInternalServerError)
+		return
+	}
 }

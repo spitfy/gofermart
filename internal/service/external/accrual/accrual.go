@@ -44,6 +44,7 @@ func (s *Service) Call(userID int, orderNumber string) {
 	}
 	switch resp.StatusCode() {
 	case http.StatusOK:
+		log.Println("========= accrual StatusOK orderNumber: ", orderNumber)
 		a, err := s.prepare(userID, resp.Body())
 		if err != nil {
 			log.Println(err)
@@ -51,28 +52,29 @@ func (s *Service) Call(userID int, orderNumber string) {
 		s.save(a)
 	case http.StatusNoContent:
 		//todo
-		a, err := s.prepare(userID, resp.Body())
-		if err != nil {
-			log.Println(err)
-		}
-		s.save(a)
+		log.Println("========= accrual StatusNoContent orderNumber: ", orderNumber)
 		return
 	case http.StatusTooManyRequests:
+		log.Println("========= accrual StatusTooManyRequests orderNumber: ", orderNumber)
 		//todo
 	case http.StatusInternalServerError:
-		log.Println("error response accrual")
+		log.Println("========= accrual StatusInternalServerError orderNumber: ", orderNumber)
 		return
 	}
 }
 
 func (s *Service) prepare(userID int, resp []byte) (accrual.Accrual, error) {
 	//todo
-	//resp = []byte("{\n      \"order\": \"1233455\",\n      \"status\": \"PROCESSED\",\n      \"accrual\": 500\n  }")
+	//resp = []byte("{\n      \"order\": \"48212146351759\",\n      \"status\": \"PROCESSED\",\n      \"accrual\": 500\n  }")
 	var a Response
 	dec := json.NewDecoder(bytes.NewReader(resp))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&a); err != nil {
 		return accrual.Accrual{}, err
+	}
+	log.Println("========= accrual2: ", a)
+	if a.Status == "" {
+		a.Status = accrual.StatusNew
 	}
 	return accrual.Accrual{
 		UserID: userID,

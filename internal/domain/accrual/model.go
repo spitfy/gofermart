@@ -13,6 +13,7 @@ const (
 	StatusInvalid    Status = "INVALID"
 	StatusProcessed  Status = "PROCESSED"
 	StatusRegistered Status = "REGISTERED"
+	StatusNew        Status = "NEW"
 )
 
 type Accrual struct {

@@ -7,10 +7,12 @@ import (
 	"github.com/spitfy/gofermart/internal/model"
 	"github.com/spitfy/gofermart/internal/repository/order"
 	accrualServ "github.com/spitfy/gofermart/internal/service/external/accrual"
+	"log"
 )
 
 var (
-	ErrExistsOrderNum = errors.New("order number is exists")
+	ErrExistsOrder      = errors.New("order number is exists")
+	ErrOrderAnotherUser = errors.New("order is exists by other user")
 )
 
 type Service struct {
@@ -27,7 +29,7 @@ func NewService(cfg *config.Config, store order.Storer, as *accrualServ.Service)
 	}
 }
 
-func (s *Service) AddOrder(ctx context.Context, userID int, number string) (model.OrderStatus, error) {
+func (s *Service) AddOrder(ctx context.Context, userID int, number string) error {
 	m := model.Order{
 		UserID: userID,
 		Number: number,
@@ -35,16 +37,16 @@ func (s *Service) AddOrder(ctx context.Context, userID int, number string) (mode
 	o, err := s.s.AddOrder(ctx, m)
 	if errors.Is(err, order.ErrUniqueNum) {
 		if o.UserID != m.UserID {
-			return "", ErrExistsOrderNum
+			return ErrOrderAnotherUser
 		}
-		return "", nil
+		return ErrExistsOrder
 	}
 	if err != nil {
-		return "", err
+		return err
 	}
-
+	log.Println("===========AddOrder=======")
 	go s.as.Call(userID, number)
-	return o.Status, nil
+	return nil
 }
 
 func (s *Service) ListOrders(ctx context.Context, userID int) ([]model.Order, error) {

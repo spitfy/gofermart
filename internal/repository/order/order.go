@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -35,7 +36,7 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 	switch {
 	case errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation:
 		var userID int
-		var status model.OrderStatus
+		var status sql.NullString
 		err = s.Conn.QueryRow(
 			ctx,
 			`SELECT o.user_id, a.status 
@@ -47,9 +48,15 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 		if err != nil {
 			return order, err
 		}
+		var statusStr string
+		if status.Valid {
+			statusStr = status.String
+		} else {
+			statusStr = "" // или любое значение по умолчанию для NULL
+		}
 		return model.Order{
 			UserID: userID,
-			Status: status,
+			Status: model.OrderStatus(statusStr),
 		}, ErrUniqueNum
 	case err != nil:
 		return order, err
@@ -61,11 +68,11 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 func (s *Store) ListOrders(ctx context.Context, userID int) ([]model.Order, error) {
 	rows, err := s.Conn.Query(
 		ctx,
-		`SELECT a.status, o.number, a.amount, o.created_at 
+		`SELECT coalesce(a.status, $1), o.number, coalesce(a.amount, 0), o.created_at 
 			   FROM orders o
 					left join accruals a on o.id = a.order_id
-			  WHERE o.user_id = $1`,
-		userID,
+			  WHERE o.user_id = $2`,
+		model.StatusNew, userID,
 	)
 	if err != nil {
 		return nil, err
