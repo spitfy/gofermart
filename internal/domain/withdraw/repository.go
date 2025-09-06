@@ -2,12 +2,11 @@ package withdraw
 
 import (
 	"context"
-	"github.com/spitfy/gofermart/internal/model/withdraw"
 	"github.com/spitfy/gofermart/internal/repository"
 )
 
 type Storer interface {
-	Add(ctx context.Context, w withdraw.Withdraw) error
+	Add(ctx context.Context, w Withdraw) error
 }
 
 type Store struct {
@@ -20,9 +19,11 @@ func NewStore(db *repository.DBStore) *Store {
 	}
 }
 
-func (s *Store) Add(ctx context.Context, w withdraw.Withdraw) error {
+func (s *Store) Add(ctx context.Context, w Withdraw) error {
 	_, err := s.Conn.Exec(ctx,
-		`INSERT INTO withdrawals (user_id, order_id, amount) 
+		`begin 
+select sum
+INSERT INTO withdrawals (user_id, order_id, amount) 
 					VALUES ($1, (SELECT o.id FROM orders o WHERE o.number = $2), $3)`,
 		w.UserID, w.Order, w.Amount,
 	)

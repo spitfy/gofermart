@@ -35,9 +35,9 @@ func (s *Service) AddOrder(ctx context.Context, userID int, number string) (mode
 	o, err := s.s.AddOrder(ctx, m)
 	if errors.Is(err, order.ErrUniqueNum) {
 		if o.UserID != m.UserID {
-			return "", ErrExistsOrderNum
+			return o.Status, ErrExistsOrderNum
 		}
-		return "", nil
+		return o.Status, nil
 	}
 	if err != nil {
 		return "", err

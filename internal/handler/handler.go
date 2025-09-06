@@ -3,9 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"github.com/spitfy/gofermart/internal/domain/withdraw"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/model"
-	"github.com/spitfy/gofermart/internal/model/withdraw"
 	storeUser "github.com/spitfy/gofermart/internal/repository/user"
 	"github.com/spitfy/gofermart/internal/service/order"
 	"io"
