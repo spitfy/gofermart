@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/spitfy/gofermart/internal/config"
+	"github.com/spitfy/gofermart/internal/domain/order"
 	"github.com/spitfy/gofermart/internal/domain/user"
 	"github.com/spitfy/gofermart/internal/domain/withdraw"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/middleware/logger"
-	"github.com/spitfy/gofermart/internal/service/order"
 	"mime"
 	"net/http"
 )

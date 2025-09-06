@@ -6,13 +6,12 @@ import (
 	"errors"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/spitfy/gofermart/internal/model"
 	"github.com/spitfy/gofermart/internal/repository"
 )
 
 type Storer interface {
-	AddOrder(ctx context.Context, order model.Order) (model.Order, error)
-	ListOrders(ctx context.Context, UserID int) ([]model.Order, error)
+	AddOrder(ctx context.Context, order Order) (Order, error)
+	ListOrders(ctx context.Context, UserID int) ([]Order, error)
 }
 
 type Store struct {
@@ -27,7 +26,7 @@ func NewStore(db *repository.DBStore) *Store {
 
 var ErrUniqueNum = errors.New("order number already exists")
 
-func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, error) {
+func (s *Store) AddOrder(ctx context.Context, order Order) (Order, error) {
 	_, err := s.Conn.Exec(ctx,
 		`INSERT INTO orders (user_id, number) VALUES ($1, $2)`,
 		order.UserID, order.Number,
@@ -54,9 +53,9 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 		} else {
 			statusStr = "" // или любое значение по умолчанию для NULL
 		}
-		return model.Order{
+		return Order{
 			UserID: userID,
-			Status: model.OrderStatus(statusStr),
+			Status: OrderStatus(statusStr),
 		}, ErrUniqueNum
 	case err != nil:
 		return order, err
@@ -65,23 +64,23 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 	}
 }
 
-func (s *Store) ListOrders(ctx context.Context, userID int) ([]model.Order, error) {
+func (s *Store) ListOrders(ctx context.Context, userID int) ([]Order, error) {
 	rows, err := s.Conn.Query(
 		ctx,
 		`SELECT coalesce(a.status, $1), o.number, coalesce(a.amount, 0), o.created_at 
 			   FROM orders o
 					left join accruals a on o.id = a.order_id
 			  WHERE o.user_id = $2`,
-		model.StatusNew, userID,
+		StatusNew, userID,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var orders []model.Order
+	var orders []Order
 	for rows.Next() {
-		var o model.Order
+		var o Order
 		if err = rows.Scan(&o.Status, &o.Number, &o.Accrual, &o.CreatedAt); err != nil {
 			return nil, err
 		}

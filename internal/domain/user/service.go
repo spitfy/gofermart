@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
-	"github.com/spitfy/gofermart/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -55,7 +54,7 @@ func checkPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func (us *Service) Balance(ctx context.Context, userID int) (model.Balance, error) {
+func (us *Service) Balance(ctx context.Context, userID int) (Balance, error) {
 	return us.s.Balance(ctx, userID)
 }
 

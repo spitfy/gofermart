@@ -10,3 +10,8 @@ type AuthUser struct {
 	Login    string
 	Password string
 }
+
+type Balance struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
+}

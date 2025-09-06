@@ -1,4 +1,4 @@
-package model
+package order
 
 import (
 	"encoding/json"
@@ -22,11 +22,6 @@ type Order struct {
 	Status    OrderStatus `json:"status"`
 	Accrual   float64     `json:"accrual"`
 	CreatedAt time.Time   `json:"uploaded_at"`
-}
-
-type Balance struct {
-	Current   float64 `json:"current"`
-	Withdrawn float64 `json:"withdrawn"`
 }
 
 func (os OrderStatus) IsValid() bool {

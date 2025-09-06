@@ -3,11 +3,11 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"github.com/spitfy/gofermart/internal/domain/order"
 	"github.com/spitfy/gofermart/internal/domain/user"
 	"github.com/spitfy/gofermart/internal/domain/withdraw"
 	"github.com/spitfy/gofermart/internal/helper"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
-	"github.com/spitfy/gofermart/internal/service/order"
 	"io"
 	"mime"
 	"net/http"

@@ -4,10 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/spitfy/gofermart/internal/config"
-	"github.com/spitfy/gofermart/internal/model"
-	"github.com/spitfy/gofermart/internal/repository/order"
 	accrualServ "github.com/spitfy/gofermart/internal/service/external/accrual"
-	"log"
 )
 
 var (
@@ -17,11 +14,11 @@ var (
 
 type Service struct {
 	cfg *config.Config
-	s   order.Storer
+	s   Storer
 	as  *accrualServ.Service
 }
 
-func NewService(cfg *config.Config, store order.Storer, as *accrualServ.Service) *Service {
+func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Service {
 	return &Service{
 		cfg: cfg,
 		s:   store,
@@ -30,12 +27,12 @@ func NewService(cfg *config.Config, store order.Storer, as *accrualServ.Service)
 }
 
 func (s *Service) AddOrder(ctx context.Context, userID int, number string) error {
-	m := model.Order{
+	m := Order{
 		UserID: userID,
 		Number: number,
 	}
 	o, err := s.s.AddOrder(ctx, m)
-	if errors.Is(err, order.ErrUniqueNum) {
+	if errors.Is(err, ErrUniqueNum) {
 		if o.UserID != m.UserID {
 			return ErrOrderAnotherUser
 		}
@@ -44,11 +41,10 @@ func (s *Service) AddOrder(ctx context.Context, userID int, number string) error
 	if err != nil {
 		return err
 	}
-	log.Println("===========AddOrder=======")
 	go s.as.Call(userID, number)
 	return nil
 }
 
-func (s *Service) ListOrders(ctx context.Context, userID int) ([]model.Order, error) {
+func (s *Service) ListOrders(ctx context.Context, userID int) ([]Order, error) {
 	return s.s.ListOrders(ctx, userID)
 }
