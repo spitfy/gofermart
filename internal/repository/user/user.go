@@ -77,7 +77,7 @@ func (s *Store) Balance(ctx context.Context, userID int) (model.Balance, error) 
 	var balance model.Balance
 	err := s.Conn.QueryRow(
 		ctx,
-		`select (select coalesce(SUM(amount), 0) from accruals WHERE user_id = $1), 
+		`select (SELECT balance FROM users WHERE id = $1), 
        				(select coalesce(SUM(amount), 0) from withdrawals where user_id = $1)`,
 		userID,
 	).Scan(&balance.Current, &balance.Withdrawn)
