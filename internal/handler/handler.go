@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/spitfy/gofermart/internal/domain/withdraw"
+	"github.com/spitfy/gofermart/internal/helper"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/model"
 	storeUser "github.com/spitfy/gofermart/internal/repository/user"
@@ -11,7 +12,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"strconv"
 )
 
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -81,8 +81,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	orderNum := string(body)
-	_, err = strconv.Atoi(orderNum)
-	if err != nil {
+	if !helper.IsValidLuhn(orderNum) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
