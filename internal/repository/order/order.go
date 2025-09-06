@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -35,7 +36,7 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 	switch {
 	case errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation:
 		var userID int
-		var status model.OrderStatus
+		var status sql.NullString
 		err = s.Conn.QueryRow(
 			ctx,
 			`SELECT o.user_id, a.status 
@@ -47,9 +48,15 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 		if err != nil {
 			return order, err
 		}
+		var statusStr string
+		if status.Valid {
+			statusStr = status.String
+		} else {
+			statusStr = "" // или любое значение по умолчанию для NULL
+		}
 		return model.Order{
 			UserID: userID,
-			Status: status,
+			Status: model.OrderStatus(statusStr),
 		}, ErrUniqueNum
 	case err != nil:
 		return order, err
