@@ -68,11 +68,11 @@ func (s *Store) AddOrder(ctx context.Context, order model.Order) (model.Order, e
 func (s *Store) ListOrders(ctx context.Context, userID int) ([]model.Order, error) {
 	rows, err := s.Conn.Query(
 		ctx,
-		`SELECT a.status, o.number, a.amount, o.created_at 
+		`SELECT coalesce(a.status, $1), o.number, coalesce(a.amount, 0), o.created_at 
 			   FROM orders o
 					left join accruals a on o.id = a.order_id
-			  WHERE o.user_id = $1`,
-		userID,
+			  WHERE o.user_id = $2`,
+		model.StatusNew, userID,
 	)
 	if err != nil {
 		return nil, err
@@ -80,22 +80,10 @@ func (s *Store) ListOrders(ctx context.Context, userID int) ([]model.Order, erro
 	defer rows.Close()
 
 	var orders []model.Order
-	var status sql.NullString
-	var amount sql.NullFloat64
 	for rows.Next() {
 		var o model.Order
-		if err = rows.Scan(&status, &o.Number, &amount, &o.CreatedAt); err != nil {
+		if err = rows.Scan(&o.Status, &o.Number, &o.Accrual, &o.CreatedAt); err != nil {
 			return nil, err
-		}
-		if status.Valid {
-			o.Status = model.OrderStatus(status.String)
-		} else {
-			o.Status = ""
-		}
-		if amount.Valid {
-			o.Accrual = amount.Float64
-		} else {
-			o.Accrual = 0
 		}
 		orders = append(orders, o)
 	}
