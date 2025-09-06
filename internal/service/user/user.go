@@ -5,20 +5,16 @@ import (
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/model"
+	"github.com/spitfy/gofermart/internal/repository/user"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
 	cfg *config.Config
-	s   Storer
+	s   user.Storer
 }
 
-type Storer interface {
-	RegisterUser(ctx context.Context, user model.User) (int, error)
-	PassByLogin(ctx context.Context, login string) (model.AuthUser, error)
-}
-
-func NewService(cfg *config.Config, store Storer) *Service {
+func NewService(cfg *config.Config, store user.Storer) *Service {
 	return &Service{
 		cfg: cfg,
 		s:   store,
@@ -58,4 +54,8 @@ func hashPassword(password string) (string, error) {
 func checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+func (s *Service) Balance(ctx context.Context, userID int) (model.Balance, error) {
+	return s.s.Balance(ctx, userID)
 }

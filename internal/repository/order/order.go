@@ -12,7 +12,6 @@ import (
 type Storer interface {
 	AddOrder(ctx context.Context, order model.Order) (model.Order, error)
 	ListOrders(ctx context.Context, UserID int) ([]model.Order, error)
-	Balance(ctx context.Context, userID int) (model.Balance, error)
 }
 
 type Store struct {
@@ -85,15 +84,4 @@ func (s *Store) ListOrders(ctx context.Context, userID int) ([]model.Order, erro
 		return nil, err
 	}
 	return orders, nil
-}
-
-func (s *Store) Balance(ctx context.Context, userID int) (model.Balance, error) {
-	var balance model.Balance
-	err := s.Conn.QueryRow(
-		ctx,
-		`select (select coalesce(SUM(accrual), 0) from orders WHERE user_id = $1), 
-       				(select coalesce(SUM(amount), 0) from withdrawals where user_id = $1)`,
-		userID,
-	).Scan(&balance.Current, &balance.Withdrawn)
-	return balance, err
 }

@@ -50,7 +50,3 @@ func (s *Service) AddOrder(ctx context.Context, userID int, number string) (mode
 func (s *Service) ListOrders(ctx context.Context, userID int) ([]model.Order, error) {
 	return s.s.ListOrders(ctx, userID)
 }
-
-func (s *Service) Balance(ctx context.Context, userID int) (model.Balance, error) {
-	return s.s.Balance(ctx, userID)
-}

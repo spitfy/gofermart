@@ -133,7 +133,7 @@ func (h *Handler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	balance, err := h.s.OrderService.Balance(r.Context(), userID)
+	balance, err := h.s.UserService.Balance(r.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
