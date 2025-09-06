@@ -3,12 +3,17 @@ package config
 import (
 	"flag"
 	"github.com/caarlos0/env/v6"
+	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 	"github.com/spitfy/gofermart/internal/config/db"
 	handler "github.com/spitfy/gofermart/internal/handler/config"
+	"github.com/spitfy/gofermart/internal/helper"
 	auth "github.com/spitfy/gofermart/internal/middleware/auth/config"
 	loggerConf "github.com/spitfy/gofermart/internal/middleware/logger/config"
 	accrual "github.com/spitfy/gofermart/internal/service/external/accrual/config"
 	"log"
+	"os"
+	"path/filepath"
 )
 
 type Config struct {
@@ -19,15 +24,53 @@ type Config struct {
 	Logger  loggerConf.Config
 }
 
-const (
-	DefaultRunAddress     string = ":8080"
-	DefaultAccrualAddress string = "http://localhost:8082"
-	DefaultDatabaseURI    string = "postgres://postgres:postgres@localhost:5432/gofermart?sslmode=disable"
-	SecretKey             string = "**SecRetKey#!45**"
-	DefaultLogLevel       string = "info"
-)
+var SecretKey string = "SecRetKey"
+
+type Default struct {
+	RunAddress     string
+	AccrualAddress string
+	DatabaseURI    string
+	LogLevel       string
+	Secret         string
+}
+
+func newDefault() (*Default, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	moduleRoot, err := helper.FindModuleRoot(wd)
+	if err != nil {
+		return nil, err
+	}
+	envPath := filepath.Join(moduleRoot, ".env")
+
+	log.Println(envPath)
+	err = godotenv.Load(envPath)
+	if err != nil {
+		log.Println("No .env file found, relying on environment variables")
+	}
+	viper.AutomaticEnv()
+
+	d := Default{
+		RunAddress:     viper.GetString("run_address"),
+		AccrualAddress: viper.GetString("accrual_system_address"),
+		DatabaseURI:    viper.GetString("database_uri"),
+		LogLevel:       viper.GetString("log_level"),
+		Secret:         viper.GetString("secret"),
+	}
+	if d.Secret == "" {
+		d.Secret = SecretKey
+	}
+	return &d, nil
+}
 
 func GetConfig() *Config {
+	d, err := newDefault()
+	if err != nil {
+		log.Println(err)
+	}
+
 	conf := &Config{
 		Auth: auth.Config{
 			SecretKey: SecretKey,
@@ -38,18 +81,18 @@ func GetConfig() *Config {
 		log.Fatal(err)
 	}
 	if conf.Handler.RunAddress == "" {
-		conf.Handler.RunAddress = DefaultRunAddress
+		conf.Handler.RunAddress = d.RunAddress
 	}
 	if conf.DB.DatabaseURI == "" {
-		conf.DB.DatabaseURI = DefaultDatabaseURI
+		conf.DB.DatabaseURI = d.DatabaseURI
 	}
 	if conf.Accrual.SystemAddress == "" {
-		conf.Accrual.SystemAddress = DefaultAccrualAddress
+		conf.Accrual.SystemAddress = d.AccrualAddress
 	}
 	flag.StringVar(&conf.Handler.RunAddress, "a", conf.Handler.RunAddress, "server address")
 	flag.StringVar(&conf.DB.DatabaseURI, "d", conf.DB.DatabaseURI, "database DSN address")
 	flag.StringVar(&conf.Accrual.SystemAddress, "r", conf.Accrual.SystemAddress, "accrual server address")
-	flag.StringVar(&conf.Logger.LogLevel, "l", DefaultLogLevel, "Logger level")
+	flag.StringVar(&conf.Logger.LogLevel, "l", d.LogLevel, "Logger level")
 
 	flag.Parse()
 
