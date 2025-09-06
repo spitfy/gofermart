@@ -1,7 +1,9 @@
 package logger
 
 import (
+	"bytes"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"time"
 )
@@ -50,6 +52,11 @@ func (l *Logger) LogInfo(h http.HandlerFunc) http.HandlerFunc {
 			responseData:   &responseData{status: 0, size: 0, body: []byte{}},
 		}
 
+		bodyBuf := new(bytes.Buffer)
+		tee := io.TeeReader(r.Body, bodyBuf)
+		body, _ := io.ReadAll(tee)
+		r.Body = io.NopCloser(bodyBuf)
+
 		start := time.Now()
 		h(&lw, r)
 		duration := time.Since(start)
@@ -60,7 +67,8 @@ func (l *Logger) LogInfo(h http.HandlerFunc) http.HandlerFunc {
 			zap.Duration("duration", duration),
 			zap.Int("status", lw.responseData.status),
 			zap.Int("size", lw.responseData.size),
-			zap.ByteString("body", lw.responseData.body),
+			zap.ByteString("request_body", body),
+			zap.ByteString("response_body", lw.responseData.body),
 		)
 	}
 }
