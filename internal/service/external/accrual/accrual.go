@@ -42,9 +42,9 @@ func (s *Service) Call(userID int, orderNumber string) {
 		log.Println("received nil response from accrual service")
 		return
 	}
-	log.Println("========= accrual: ", resp.StatusCode())
 	switch resp.StatusCode() {
 	case http.StatusOK:
+		log.Println("========= accrual StatusOK orderNumber: ", orderNumber)
 		a, err := s.prepare(userID, resp.Body())
 		if err != nil {
 			log.Println(err)
@@ -52,16 +52,13 @@ func (s *Service) Call(userID int, orderNumber string) {
 		s.save(a)
 	case http.StatusNoContent:
 		//todo
-		a, err := s.prepare(userID, resp.Body())
-		if err != nil {
-			log.Println(err)
-		}
-		s.save(a)
+		log.Println("========= accrual StatusNoContent orderNumber: ", orderNumber)
 		return
 	case http.StatusTooManyRequests:
+		log.Println("========= accrual StatusTooManyRequests orderNumber: ", orderNumber)
 		//todo
 	case http.StatusInternalServerError:
-		log.Println("error response accrual")
+		log.Println("========= accrual StatusInternalServerError orderNumber: ", orderNumber)
 		return
 	}
 }
