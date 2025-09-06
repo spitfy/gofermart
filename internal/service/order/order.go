@@ -7,6 +7,7 @@ import (
 	"github.com/spitfy/gofermart/internal/model"
 	"github.com/spitfy/gofermart/internal/repository/order"
 	accrualServ "github.com/spitfy/gofermart/internal/service/external/accrual"
+	"log"
 )
 
 var (
@@ -43,7 +44,7 @@ func (s *Service) AddOrder(ctx context.Context, userID int, number string) error
 	if err != nil {
 		return err
 	}
-
+	log.Println("===========AddOrder=======")
 	go s.as.Call(userID, number)
 	return nil
 }
