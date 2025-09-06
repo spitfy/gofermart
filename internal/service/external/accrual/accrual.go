@@ -42,6 +42,7 @@ func (s *Service) Call(userID int, orderNumber string) {
 		log.Println("received nil response from accrual service")
 		return
 	}
+	log.Println("========= accrual: ", resp.StatusCode())
 	switch resp.StatusCode() {
 	case http.StatusOK:
 		a, err := s.prepare(userID, resp.Body())
@@ -74,6 +75,7 @@ func (s *Service) prepare(userID int, resp []byte) (accrual.Accrual, error) {
 	if err := dec.Decode(&a); err != nil {
 		return accrual.Accrual{}, err
 	}
+	log.Println("========= accrual2: ", a)
 	return accrual.Accrual{
 		UserID: userID,
 		Amount: a.Accrual,
