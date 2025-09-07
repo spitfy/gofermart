@@ -24,6 +24,11 @@ type Order struct {
 	CreatedAt time.Time   `json:"uploaded_at"`
 }
 
+type orderSend struct {
+	userID int
+	number string
+}
+
 func (os OrderStatus) IsValid() bool {
 	switch os {
 	case StatusNew, StatusProcessing, StatusInvalid, StatusProcessed:
