@@ -3,9 +3,10 @@ package order
 import (
 	"context"
 	"errors"
+	"runtime"
+
 	"github.com/spitfy/gofermart/internal/config"
 	accrualServ "github.com/spitfy/gofermart/internal/service/external/accrual"
-	"runtime"
 )
 
 var (

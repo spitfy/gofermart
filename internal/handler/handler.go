@@ -3,14 +3,15 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"mime"
+	"net/http"
+
 	"github.com/spitfy/gofermart/internal/domain/order"
 	"github.com/spitfy/gofermart/internal/domain/user"
 	"github.com/spitfy/gofermart/internal/domain/withdraw"
 	"github.com/spitfy/gofermart/internal/helper"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
-	"io"
-	"mime"
-	"net/http"
 )
 
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +75,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		_ = r.Body.Close()
 	}()
 
-	userID, ok := r.Context().Value("userID").(int)
+	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -102,7 +103,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListOrders(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("userID").(int)
+	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -125,7 +126,7 @@ func (h *Handler) ListOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("userID").(int)
+	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -144,7 +145,7 @@ func (h *Handler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) WithdrawBalance(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("userID").(int)
+	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -174,7 +175,7 @@ func (h *Handler) WithdrawBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListWithdrawals(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("userID").(int)
+	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		return

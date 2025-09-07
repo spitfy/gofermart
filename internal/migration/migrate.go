@@ -3,11 +3,13 @@ package migration
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+
 	"github.com/golang-migrate/migrate/v4"
+	// Blank import required for PostgreSQL driver registration for migrations
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/spitfy/gofermart/internal/config"
-	"path/filepath"
 )
 
 type Migration struct {

@@ -1,9 +1,14 @@
 package handler
 
 import (
-	"golang.org/x/net/context"
 	"net/http"
+
+	"golang.org/x/net/context"
 )
+
+type ctxKey string
+
+const userIDKey ctxKey = "userID"
 
 func (h *Handler) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +28,7 @@ func (h *Handler) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "userID", userID)
+		ctx := context.WithValue(r.Context(), userIDKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
