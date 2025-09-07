@@ -3,15 +3,16 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v4"
 	"net/http"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
 var (
 	ErrUnAuth = errors.New("unauthorized")
 )
 
-type AuthManager struct {
+type Service struct {
 	secretKey []byte
 }
 
@@ -20,11 +21,11 @@ type Claims struct {
 	UserID int
 }
 
-func New(secret string) *AuthManager {
-	return &AuthManager{secretKey: []byte(secret)}
+func New(secret string) *Service {
+	return &Service{secretKey: []byte(secret)}
 }
 
-func (a *AuthManager) GetTokenFromCookie(r *http.Request) (string, error) {
+func (a *Service) GetTokenFromCookie(r *http.Request) (string, error) {
 	cookie, err := r.Cookie("ID")
 	if err != nil {
 		if err == http.ErrNoCookie {
@@ -38,14 +39,14 @@ func (a *AuthManager) GetTokenFromCookie(r *http.Request) (string, error) {
 	return cookie.Value, nil
 }
 
-func (a *AuthManager) BuildJWT(userID int) (string, error) {
+func (a *Service) BuildJWT(userID int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		UserID: userID,
 	})
 	return token.SignedString(a.secretKey)
 }
 
-func (a *AuthManager) ParseUserID(tokenStr string) (int, error) {
+func (a *Service) ParseUserID(tokenStr string) (int, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -59,7 +60,7 @@ func (a *AuthManager) ParseUserID(tokenStr string) (int, error) {
 	return claims.UserID, nil
 }
 
-func (a *AuthManager) CreateToken(w http.ResponseWriter, userID int) (string, error) {
+func (a *Service) CreateToken(w http.ResponseWriter, userID int) (string, error) {
 	tokenString, err := a.BuildJWT(userID)
 	if err != nil {
 		return "", err

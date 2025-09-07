@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/domain/accrual"
-	"log"
-	"net/http"
 )
 
 type Storer interface {
@@ -24,9 +25,8 @@ func NewService(cfg *config.Config, s *accrual.Service) *Service {
 }
 
 type Service struct {
-	cfg    *config.Config
-	s      *accrual.Service
-	userID int
+	cfg *config.Config
+	s   *accrual.Service
 }
 
 func (s *Service) Call(userID int, orderNumber string) {

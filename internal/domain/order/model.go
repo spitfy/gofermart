@@ -6,25 +6,30 @@ import (
 	"time"
 )
 
-type OrderStatus string
+type status string
 
 const (
-	StatusNew        OrderStatus = "NEW"
-	StatusProcessing OrderStatus = "PROCESSING"
-	StatusInvalid    OrderStatus = "INVALID"
-	StatusProcessed  OrderStatus = "PROCESSED"
+	StatusNew        status = "NEW"
+	StatusProcessing status = "PROCESSING"
+	StatusInvalid    status = "INVALID"
+	StatusProcessed  status = "PROCESSED"
 )
 
 type Order struct {
-	ID        int         `json:"-"`
-	UserID    int         `json:"-"`
-	Number    string      `json:"number"`
-	Status    OrderStatus `json:"status"`
-	Accrual   float64     `json:"accrual"`
-	CreatedAt time.Time   `json:"uploaded_at"`
+	ID        int       `json:"-"`
+	UserID    int       `json:"-"`
+	Number    string    `json:"number"`
+	Status    status    `json:"status"`
+	Accrual   float64   `json:"accrual"`
+	CreatedAt time.Time `json:"uploaded_at"`
 }
 
-func (os OrderStatus) IsValid() bool {
+type orderSend struct {
+	userID int
+	number string
+}
+
+func (os status) IsValid() bool {
 	switch os {
 	case StatusNew, StatusProcessing, StatusInvalid, StatusProcessed:
 		return true
@@ -33,13 +38,13 @@ func (os OrderStatus) IsValid() bool {
 	}
 }
 
-func (os *OrderStatus) UnmarshalJSON(data []byte) error {
+func (os *status) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
 
-	status := OrderStatus(s)
+	status := status(s)
 	if !status.IsValid() {
 		return errors.New("invalid order status")
 	}

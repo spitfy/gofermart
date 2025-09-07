@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/migration"

@@ -2,8 +2,8 @@ package order
 
 import (
 	"context"
-	"database/sql"
 	"errors"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spitfy/gofermart/internal/repository"
@@ -35,27 +35,22 @@ func (s *Store) AddOrder(ctx context.Context, order Order) (Order, error) {
 	switch {
 	case errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation:
 		var userID int
-		var status sql.NullString
+		var st status
 		err = s.Conn.QueryRow(
 			ctx,
-			`SELECT o.user_id, a.status 
+			`SELECT o.user_id, coalesce(a.status, $1) 
 				   FROM orders o  
 				   		left join accruals a on a.order_id = o.id 
-				  WHERE number=$1`,
-			order.Number,
-		).Scan(&userID, &status)
+				  WHERE number=$2`,
+			StatusNew, order.Number,
+		).Scan(&userID, &st)
 		if err != nil {
 			return order, err
 		}
-		var statusStr string
-		if status.Valid {
-			statusStr = status.String
-		} else {
-			statusStr = "" // или любое значение по умолчанию для NULL
-		}
+
 		return Order{
 			UserID: userID,
-			Status: OrderStatus(statusStr),
+			Status: st,
 		}, ErrUniqueNum
 	case err != nil:
 		return order, err

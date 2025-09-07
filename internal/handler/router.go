@@ -2,6 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"mime"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/domain/order"
@@ -9,8 +12,6 @@ import (
 	"github.com/spitfy/gofermart/internal/domain/withdraw"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"github.com/spitfy/gofermart/internal/middleware/logger"
-	"mime"
-	"net/http"
 )
 
 func newRouter(h *Handler) *chi.Mux {
@@ -27,7 +28,7 @@ func newRouter(h *Handler) *chi.Mux {
 }
 
 type Service struct {
-	Auth            *auth.AuthManager
+	Auth            *auth.Service
 	UserService     *user.Service
 	OrderService    *order.Service
 	WithdrawService *withdraw.Service

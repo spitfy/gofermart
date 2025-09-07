@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/domain/accrual"
 	"github.com/spitfy/gofermart/internal/domain/order"
@@ -11,7 +13,6 @@ import (
 	"github.com/spitfy/gofermart/internal/middleware/logger"
 	"github.com/spitfy/gofermart/internal/repository"
 	serviceAccrual "github.com/spitfy/gofermart/internal/service/external/accrual"
-	"log"
 )
 
 func main() {

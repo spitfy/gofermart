@@ -2,10 +2,11 @@ package logger
 
 import (
 	"bytes"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type Logger struct {

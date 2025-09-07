@@ -2,6 +2,10 @@ package config
 
 import (
 	"flag"
+	"log"
+	"os"
+	"path/filepath"
+
 	"github.com/caarlos0/env/v6"
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
@@ -11,9 +15,6 @@ import (
 	auth "github.com/spitfy/gofermart/internal/middleware/auth/config"
 	loggerConf "github.com/spitfy/gofermart/internal/middleware/logger/config"
 	accrual "github.com/spitfy/gofermart/internal/service/external/accrual/config"
-	"log"
-	"os"
-	"path/filepath"
 )
 
 type Config struct {
@@ -24,7 +25,7 @@ type Config struct {
 	Logger  loggerConf.Config
 }
 
-var SecretKey string = "SecRetKey"
+var SecretKey = "SecRetKey"
 
 type Default struct {
 	RunAddress     string

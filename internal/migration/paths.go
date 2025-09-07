@@ -1,9 +1,10 @@
 package migration
 
 import (
-	"github.com/spitfy/gofermart/internal/helper"
 	"os"
 	"path/filepath"
+
+	"github.com/spitfy/gofermart/internal/helper"
 )
 
 func getMigrationsDir() (string, error) {
