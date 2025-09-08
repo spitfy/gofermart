@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gofermart
+    ports:
+      - "5432:5432"  # изменён порт хоста, чтобы не конфликтовать с локальным Postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  gophermart:
+    image: gophermart:latest
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URI=${DATABASE_URI_DOCKER}
+      - RUN_ADDRESS=${RUN_ADDRESS}
+      - SECRET=${SECRET}
+      - ACCRUAL_SYSTEM_ADDRESS=${ACCRUAL_SYSTEM_ADDRESS}
+      - LOG_LEVEL=${LOG_LEVEL}
+    depends_on:
+      - postgres
+
+  accrual:
+    image: ubuntu:22.04
+    volumes:
+      - ./cmd/accrual/accrual_linux_amd64:/usr/local/bin/accrual_linux_amd64
+    ports:
+      - "8082:8082"
+    command: /usr/local/bin/accrual_linux_amd64 -a :8082
+    environment:
+      - ACCRUAL_SYSTEM_ADDRESS=${ACCRUAL_SYSTEM_ADDRESS}
+
+volumes:
+  pgdata:
