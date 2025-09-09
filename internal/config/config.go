@@ -46,7 +46,6 @@ func newDefault() (*Default, error) {
 	}
 	envPath := filepath.Join(moduleRoot, ".env")
 
-	log.Println(envPath)
 	err = godotenv.Load(envPath)
 	if err != nil {
 		log.Println("No .env file found, relying on environment variables")

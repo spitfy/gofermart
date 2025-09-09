@@ -16,44 +16,40 @@ import (
 )
 
 type App struct {
-	Cfg *config.Config
+	cfg *config.Config
 	S   handler.Service
+	db  *repository.DBStore
 }
 
-func NewApp() (*App, error) {
-	a := App{}
+func NewApp(cfg *config.Config, db *repository.DBStore) (*App, error) {
+	a := App{
+		cfg: cfg,
+		db:  db,
+	}
 	return a.Init()
 }
 
 func (a *App) Init() (*App, error) {
-	a.Cfg = config.GetConfig()
+	userStore := user.NewStore(a.db)
+	us := user.NewService(a.cfg, userStore)
 
-	store, err := repository.NewDBStore(a.Cfg)
-	if err != nil {
-		return a, err
-	}
-	defer store.Close()
+	accrualStore := accrual.NewStore(a.db)
+	as := accrual.NewService(a.cfg, accrualStore)
 
-	userStore := user.NewStore(store)
-	us := user.NewService(a.Cfg, userStore)
+	orderStore := order.NewStore(a.db)
+	extAs := serviceAccrual.NewService(a.cfg, as)
+	os := order.NewService(a.cfg, orderStore, extAs)
 
-	accrualStore := accrual.NewStore(store)
-	as := accrual.NewService(a.Cfg, accrualStore)
+	withdrawStore := withdraw.NewStore(a.db)
+	ws := withdraw.NewService(a.cfg, withdrawStore)
 
-	orderStore := order.NewStore(store)
-	extAs := serviceAccrual.NewService(a.Cfg, as)
-	os := order.NewService(a.Cfg, orderStore, extAs)
-
-	withdrawStore := withdraw.NewStore(store)
-	ws := withdraw.NewService(a.Cfg, withdrawStore)
-
-	l, err := logger.Initialize(a.Cfg.Logger.LogLevel)
+	l, err := logger.Initialize(a.cfg.Logger.LogLevel)
 	if err != nil {
 		return a, err
 	}
 
 	a.S = handler.Service{
-		Auth:            auth.New(a.Cfg.Auth.SecretKey),
+		Auth:            auth.New(a.cfg.Auth.SecretKey),
 		UserService:     us,
 		OrderService:    os,
 		WithdrawService: ws,

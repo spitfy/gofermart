@@ -9,18 +9,27 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spitfy/gofermart/internal/config"
+	"github.com/spitfy/gofermart/internal/repository"
+
 	"github.com/spitfy/gofermart/internal/app"
 
 	"github.com/spitfy/gofermart/internal/handler"
 )
 
 func main() {
-	a, err := app.NewApp()
+	cfg := config.GetConfig()
+	db, err := repository.NewDBStore(cfg)
+	if err != nil {
+		log.Fatalf("Error database: %w", err)
+	}
+	defer db.Close()
+	a, err := app.NewApp(cfg, db)
 	if err != nil {
 		log.Fatal(err)
 	}
 	router := handler.NewRouter(a.S)
-	srv := app.NewServer(a.Cfg, router)
+	srv := app.NewServer(cfg, router)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
