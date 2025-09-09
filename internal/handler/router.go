@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/domain/order"
 	"github.com/spitfy/gofermart/internal/domain/user"
 	"github.com/spitfy/gofermart/internal/domain/withdraw"
@@ -43,13 +42,7 @@ func newHandler(service Service) *Handler {
 	}
 }
 
-func Serve(cfg *config.Config, service Service) error {
+func NewRouter(service Service) http.Handler {
 	h := newHandler(service)
-	router := newRouter(h)
-	server := &http.Server{
-		Addr:    cfg.Handler.RunAddress,
-		Handler: router,
-	}
-
-	return server.ListenAndServe()
+	return newRouter(h)
 }
