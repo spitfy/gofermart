@@ -21,7 +21,7 @@ func main() {
 	cfg := config.GetConfig()
 	db, err := repository.NewDBStore(cfg)
 	if err != nil {
-		log.Fatalf("Error database: %w", err)
+		log.Fatalf("Error database: %s", err)
 	}
 	defer db.Close()
 	a, err := app.NewApp(cfg, db)
