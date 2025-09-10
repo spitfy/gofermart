@@ -17,20 +17,27 @@ import (
 	serviceAccrual "github.com/spitfy/gofermart/internal/service/external/accrual"
 )
 
+type ctx struct {
+	ctx    context.Context
+	Cancel func()
+}
+
 type App struct {
 	cfg *config.Config
 	S   handler.Service
 	db  *repository.DBStore
-	ctx context.Context
-	wg  *sync.WaitGroup
+	Ctx ctx
+	Wg  *sync.WaitGroup
 }
 
-func NewApp(cfg *config.Config, db *repository.DBStore, ctx context.Context, wg *sync.WaitGroup) (*App, error) {
+func NewApp(cfg *config.Config, db *repository.DBStore) (*App, error) {
+	var c ctx
+	c.ctx, c.Cancel = context.WithCancel(context.Background())
 	a := App{
 		cfg: cfg,
 		db:  db,
-		ctx: ctx,
-		wg:  wg,
+		Ctx: c,
+		Wg:  &sync.WaitGroup{},
 	}
 	return a.Init()
 }
@@ -43,7 +50,7 @@ func (a *App) Init() (*App, error) {
 	as := accrual.NewService(a.cfg, accrualStore)
 
 	orderStore := order.NewStore(a.db)
-	extAs := serviceAccrual.NewService(a.cfg, as, a.ctx, a.wg)
+	extAs := serviceAccrual.NewService(a.cfg, as, a.Ctx.ctx, a.Wg)
 	os := order.NewService(a.cfg, orderStore, extAs)
 
 	withdrawStore := withdraw.NewStore(a.db)
