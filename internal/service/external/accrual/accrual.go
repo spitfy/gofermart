@@ -20,7 +20,7 @@ type Storer interface {
 	Add(a accrual.Accrual) error
 }
 
-func NewService(cfg *config.Config, s *accrual.Service, ctx context.Context, wg *sync.WaitGroup) *Service {
+func NewService(ctx context.Context, cfg *config.Config, s *accrual.Service, wg *sync.WaitGroup) *Service {
 	return &Service{
 		cfg: cfg,
 		s:   s,

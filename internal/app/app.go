@@ -50,7 +50,7 @@ func (a *App) Init() (*App, error) {
 	as := accrual.NewService(a.cfg, accrualStore)
 
 	orderStore := order.NewStore(a.db)
-	extAs := serviceAccrual.NewService(a.cfg, as, a.Ctx.ctx, a.Wg)
+	extAs := serviceAccrual.NewService(a.Ctx.ctx, a.cfg, as, a.Wg)
 	os := order.NewService(a.cfg, orderStore, extAs)
 
 	withdrawStore := withdraw.NewStore(a.db)
