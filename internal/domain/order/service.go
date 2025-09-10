@@ -31,6 +31,7 @@ func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Serv
 	}
 
 	maxProcs := runtime.GOMAXPROCS(0)
+	as.Wg.Add(maxProcs)
 	for i := 0; i < maxProcs; i++ {
 		go s.runSendWorker(as.Ctx, as.Wg)
 	}
