@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"runtime"
+	"sync"
 
 	"github.com/spitfy/gofermart/internal/config"
 	accrualServ "github.com/spitfy/gofermart/internal/service/external/accrual"
@@ -31,15 +32,24 @@ func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Serv
 
 	maxProcs := runtime.GOMAXPROCS(0)
 	for i := 0; i < maxProcs; i++ {
-		go s.runSendWorker()
+		go s.runSendWorker(as.Ctx, as.Wg)
 	}
 
 	return &s
 }
 
-func (s *Service) runSendWorker() {
-	for os := range s.sendCh {
-		s.as.Call(os.userID, os.number)
+func (s *Service) runSendWorker(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for {
+		select {
+		case os, ok := <-s.sendCh:
+			if !ok {
+				return
+			}
+			s.as.Call(os.userID, os.number)
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 

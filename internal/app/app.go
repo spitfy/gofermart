@@ -1,7 +1,9 @@
 package app
 
 import (
+	"context"
 	"net/http"
+	"sync"
 
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/domain/accrual"
@@ -19,12 +21,16 @@ type App struct {
 	cfg *config.Config
 	S   handler.Service
 	db  *repository.DBStore
+	ctx context.Context
+	wg  *sync.WaitGroup
 }
 
-func NewApp(cfg *config.Config, db *repository.DBStore) (*App, error) {
+func NewApp(cfg *config.Config, db *repository.DBStore, ctx context.Context, wg *sync.WaitGroup) (*App, error) {
 	a := App{
 		cfg: cfg,
 		db:  db,
+		ctx: ctx,
+		wg:  wg,
 	}
 	return a.Init()
 }
@@ -37,7 +43,7 @@ func (a *App) Init() (*App, error) {
 	as := accrual.NewService(a.cfg, accrualStore)
 
 	orderStore := order.NewStore(a.db)
-	extAs := serviceAccrual.NewService(a.cfg, as)
+	extAs := serviceAccrual.NewService(a.cfg, as, a.ctx, a.wg)
 	os := order.NewService(a.cfg, orderStore, extAs)
 
 	withdrawStore := withdraw.NewStore(a.db)

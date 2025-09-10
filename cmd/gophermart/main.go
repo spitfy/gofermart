@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -24,7 +25,10 @@ func main() {
 		log.Fatalf("Error database: %s", err)
 	}
 	defer db.Close()
-	a, err := app.NewApp(cfg, db)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	var wg *sync.WaitGroup
+	a, err := app.NewApp(cfg, db, ctx, wg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,9 +46,12 @@ func main() {
 
 	<-quit
 
+	cancel()
+	wg.Wait()
+
 	log.Println("Shutting down server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)

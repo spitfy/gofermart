@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -19,16 +20,20 @@ type Storer interface {
 	Add(a accrual.Accrual) error
 }
 
-func NewService(cfg *config.Config, s *accrual.Service) *Service {
+func NewService(cfg *config.Config, s *accrual.Service, ctx context.Context, wg *sync.WaitGroup) *Service {
 	return &Service{
 		cfg: cfg,
 		s:   s,
+		Ctx: ctx,
+		Wg:  wg,
 	}
 }
 
 type Service struct {
 	cfg *config.Config
 	s   *accrual.Service
+	Ctx context.Context
+	Wg  *sync.WaitGroup
 }
 
 func (s *Service) Call(userID int, orderNumber string) {
