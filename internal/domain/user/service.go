@@ -13,6 +13,13 @@ type Service struct {
 	s   Storer
 }
 
+type Servicer interface {
+	RegisterUser(ctx context.Context, user User) (int, error)
+	LoginUser(ctx context.Context, user User) (int, error)
+	Balance(ctx context.Context, userID int) (Balance, error)
+	CanWithdraw(ctx context.Context, userID int, w float64) (bool, error)
+}
+
 func NewService(cfg *config.Config, store Storer) *Service {
 	return &Service{
 		cfg: cfg,

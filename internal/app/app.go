@@ -43,18 +43,14 @@ func NewApp(cfg *config.Config, db *repository.DBStore) (*App, error) {
 }
 
 func (a *App) Init() (*App, error) {
-	userStore := user.NewStore(a.db)
-	us := user.NewService(a.cfg, userStore)
 
 	accrualStore := accrual.NewStore(a.db)
 	as := accrual.NewService(a.cfg, accrualStore)
+	extAs := serviceAccrual.NewService(a.Ctx.ctx, a.cfg, as, a.Wg)
 
 	orderStore := order.NewStore(a.db)
-	extAs := serviceAccrual.NewService(a.Ctx.ctx, a.cfg, as, a.Wg)
-	os := order.NewService(a.cfg, orderStore, extAs)
-
+	userStore := user.NewStore(a.db)
 	withdrawStore := withdraw.NewStore(a.db)
-	ws := withdraw.NewService(a.cfg, withdrawStore)
 
 	l, err := logger.Initialize(a.cfg.Logger.LogLevel)
 	if err != nil {
@@ -63,9 +59,9 @@ func (a *App) Init() (*App, error) {
 
 	a.S = handler.Service{
 		Auth:            auth.New(a.cfg.Auth.SecretKey),
-		UserService:     us,
-		OrderService:    os,
-		WithdrawService: ws,
+		UserService:     user.NewService(a.cfg, userStore),
+		OrderService:    order.NewService(a.cfg, orderStore, extAs),
+		WithdrawService: withdraw.NewService(a.cfg, withdrawStore),
 		Logger:          l,
 	}
 

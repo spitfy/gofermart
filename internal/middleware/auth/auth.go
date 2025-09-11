@@ -16,6 +16,13 @@ type Service struct {
 	secretKey []byte
 }
 
+type Servicer interface {
+	GetTokenFromCookie(r *http.Request) (string, error)
+	BuildJWT(userID int) (string, error)
+	ParseUserID(tokenStr string) (int, error)
+	CreateToken(w http.ResponseWriter, userID int) (string, error)
+}
+
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID int
