@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"sync"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spitfy/gofermart/internal/config"
@@ -17,49 +20,64 @@ type Storer interface {
 	Add(a accrual.Accrual) error
 }
 
-func NewService(cfg *config.Config, s *accrual.Service) *Service {
+func NewService(ctx context.Context, cfg *config.Config, s *accrual.Service, wg *sync.WaitGroup) *Service {
 	return &Service{
 		cfg: cfg,
 		s:   s,
+		Ctx: ctx,
+		Wg:  wg,
 	}
 }
 
 type Service struct {
 	cfg *config.Config
 	s   *accrual.Service
+	Ctx context.Context
+	Wg  *sync.WaitGroup
 }
 
 func (s *Service) Call(userID int, orderNumber string) {
 	client := resty.New()
-	resp, err := client.R().
-		SetHeader("Content-Length", "0").
-		Get(fmt.Sprintf("%s/api/orders/%s", s.cfg.Accrual.SystemAddress, orderNumber))
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	if resp == nil {
-		log.Println("received nil response from accrual service")
-		return
-	}
-	switch resp.StatusCode() {
-	case http.StatusOK:
-		log.Println("========= accrual StatusOK orderNumber: ", orderNumber)
-		a, err := s.prepare(userID, resp.Body())
+
+	for {
+		resp, err := client.R().
+			SetHeader("Content-Length", "0").
+			Get(fmt.Sprintf("%s/api/orders/%s", s.cfg.Accrual.SystemAddress, orderNumber))
 		if err != nil {
 			log.Println(err)
+			return
 		}
-		s.save(a)
-	case http.StatusNoContent:
-		//todo
-		log.Println("========= accrual StatusNoContent orderNumber: ", orderNumber)
-		return
-	case http.StatusTooManyRequests:
-		log.Println("========= accrual StatusTooManyRequests orderNumber: ", orderNumber)
-		//todo
-	case http.StatusInternalServerError:
-		log.Println("========= accrual StatusInternalServerError orderNumber: ", orderNumber)
-		return
+		if resp == nil {
+			log.Println("received nil response from accrual service")
+			return
+		}
+		switch resp.StatusCode() {
+		case http.StatusOK:
+			log.Println("========= accrual StatusOK orderNumber: ", orderNumber)
+			a, err := s.prepare(userID, resp.Body())
+			if err != nil {
+				log.Println(err)
+			}
+			s.save(a)
+			return
+		case http.StatusNoContent:
+			log.Println("========= accrual StatusNoContent orderNumber: ", orderNumber)
+			return
+		case http.StatusTooManyRequests:
+			log.Println("========= accrual StatusTooManyRequests orderNumber: ", orderNumber)
+			retryAfter := resp.Header().Get("Retry-After")
+			delay, err := strconv.Atoi(retryAfter)
+			if err != nil || delay <= 0 {
+				delay = 1
+			}
+			time.Sleep(time.Duration(delay) * time.Second)
+			continue // повторить запрос после паузы
+		case http.StatusInternalServerError:
+			log.Println("========= accrual StatusInternalServerError orderNumber: ", orderNumber)
+			return
+		default:
+			return
+		}
 	}
 }
 

@@ -1,60 +1,58 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/spitfy/gofermart/internal/config"
-	"github.com/spitfy/gofermart/internal/domain/accrual"
-	"github.com/spitfy/gofermart/internal/domain/order"
-	"github.com/spitfy/gofermart/internal/domain/user"
-	"github.com/spitfy/gofermart/internal/domain/withdraw"
-	"github.com/spitfy/gofermart/internal/handler"
-	"github.com/spitfy/gofermart/internal/middleware/auth"
-	"github.com/spitfy/gofermart/internal/middleware/logger"
 	"github.com/spitfy/gofermart/internal/repository"
-	serviceAccrual "github.com/spitfy/gofermart/internal/service/external/accrual"
+
+	"github.com/spitfy/gofermart/internal/app"
+
+	"github.com/spitfy/gofermart/internal/handler"
 )
 
 func main() {
-	if err := run(); err != nil {
+	cfg := config.GetConfig()
+	db, err := repository.NewDBStore(cfg)
+	if err != nil {
+		log.Fatalf("Error database: %s", err)
+	}
+	defer db.Close()
+
+	a, err := app.NewApp(cfg, db)
+	if err != nil {
 		log.Fatal(err)
 	}
-}
+	router := handler.NewRouter(a.S)
+	srv := app.NewServer(cfg, router)
 
-func run() (err error) {
-	cfg := config.GetConfig()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	store, err := repository.NewDBStore(cfg)
-	if err != nil {
-		return err
-	}
-	defer store.Close()
+	go func() {
+		if err = srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("ListenAndServe error: %s", err)
+		}
+	}()
 
-	userStore := user.NewStore(store)
-	us := user.NewService(cfg, userStore)
+	<-quit
 
-	accrualStore := accrual.NewStore(store)
-	as := accrual.NewService(cfg, accrualStore)
+	a.Ctx.Cancel()
+	a.Wg.Wait()
 
-	orderStore := order.NewStore(store)
-	extAs := serviceAccrual.NewService(cfg, as)
-	os := order.NewService(cfg, orderStore, extAs)
+	log.Println("Shutting down server...")
 
-	withdrawStore := withdraw.NewStore(store)
-	ws := withdraw.NewService(cfg, withdrawStore)
-
-	l, err := logger.Initialize(cfg.Logger.LogLevel)
-	if err != nil {
-		return err
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
 	}
 
-	s := handler.Service{
-		Auth:            auth.New(cfg.Auth.SecretKey),
-		UserService:     us,
-		OrderService:    os,
-		WithdrawService: ws,
-		Logger:          l,
-	}
-
-	return handler.Serve(cfg, s)
+	log.Println("Server exited gracefully")
 }
