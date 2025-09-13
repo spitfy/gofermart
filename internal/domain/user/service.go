@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
@@ -13,6 +14,9 @@ type Service struct {
 	s   Storer
 }
 
+var ErrEmptyPass = errors.New("password should be not empty")
+
+//go:generate mockgen -destination=servicer_mock.go -package=user github.com/spitfy/gofermart/internal/domain/user Servicer
 type Servicer interface {
 	RegisterUser(ctx context.Context, user User) (int, error)
 	LoginUser(ctx context.Context, user User) (int, error)
@@ -28,9 +32,12 @@ func NewService(cfg *config.Config, store Storer) *Service {
 }
 
 func (us *Service) RegisterUser(ctx context.Context, user User) (int, error) {
+	if len(user.Password) == 0 {
+		return -1, ErrEmptyPass
+	}
 	hash, err := hashPassword(user.Password)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 	user.Password = hash
 	return us.s.RegisterUser(ctx, user)

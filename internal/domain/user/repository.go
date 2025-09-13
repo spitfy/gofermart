@@ -17,6 +17,7 @@ type Store struct {
 	*repository.DBStore
 }
 
+//go:generate mockgen -destination=storer_mock.go -package=user github.com/spitfy/gofermart/internal/domain/user Storer
 type Storer interface {
 	RegisterUser(ctx context.Context, user User) (int, error)
 	PassByLogin(ctx context.Context, login string) (AuthUser, error)
