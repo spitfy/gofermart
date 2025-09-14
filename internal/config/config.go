@@ -28,11 +28,12 @@ type Config struct {
 var SecretKey = "SecRetKey"
 
 type Default struct {
-	RunAddress     string
-	AccrualAddress string
-	DatabaseURI    string
-	LogLevel       string
-	Secret         string
+	RunAddress      string
+	AccrualAddress  string
+	AccrualInterval int
+	DatabaseURI     string
+	LogLevel        string
+	Secret          string
 }
 
 func newDefault() (*Default, error) {
@@ -53,11 +54,12 @@ func newDefault() (*Default, error) {
 	viper.AutomaticEnv()
 
 	d := Default{
-		RunAddress:     viper.GetString("run_address"),
-		AccrualAddress: viper.GetString("accrual_system_address"),
-		DatabaseURI:    viper.GetString("database_uri"),
-		LogLevel:       viper.GetString("log_level"),
-		Secret:         viper.GetString("secret"),
+		RunAddress:      viper.GetString("run_address"),
+		AccrualAddress:  viper.GetString("accrual_system_address"),
+		AccrualInterval: viper.GetInt("accrual_send_interval"),
+		DatabaseURI:     viper.GetString("database_uri"),
+		LogLevel:        viper.GetString("log_level"),
+		Secret:          viper.GetString("secret"),
 	}
 	if d.Secret == "" {
 		d.Secret = SecretKey
@@ -74,6 +76,9 @@ func GetConfig() *Config {
 	conf := &Config{
 		Auth: auth.Config{
 			SecretKey: SecretKey,
+		},
+		Accrual: accrual.Config{
+			Interval: d.AccrualInterval,
 		},
 	}
 

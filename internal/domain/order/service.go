@@ -38,7 +38,7 @@ func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Serv
 		sendCh: make(chan orderSend),
 	}
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(time.Duration(cfg.Accrual.Interval) * time.Second)
 	quit := make(chan struct{})
 
 	go func() {
