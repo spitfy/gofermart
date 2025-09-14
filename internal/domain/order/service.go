@@ -3,8 +3,10 @@ package order
 import (
 	"context"
 	"errors"
+	"log"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/spitfy/gofermart/internal/config"
 	accrualServ "github.com/spitfy/gofermart/internal/service/external/accrual"
@@ -36,6 +38,24 @@ func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Serv
 		sendCh: make(chan orderSend),
 	}
 
+	ticker := time.NewTicker(1 * time.Second)
+	quit := make(chan struct{})
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				if err := s.listForAccrual(as.Ctx); err != nil {
+					log.Println("Query error:", err)
+				}
+			case <-quit:
+			case <-as.Ctx.Done():
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 	maxProcs := runtime.GOMAXPROCS(0)
 	as.Wg.Add(maxProcs)
 	for i := 0; i < maxProcs; i++ {
@@ -43,6 +63,17 @@ func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Serv
 	}
 
 	return &s
+}
+
+func (s *Service) listForAccrual(ctx context.Context) error {
+	orders, err := s.s.listForAccrual(ctx)
+	if err != nil {
+		return err
+	}
+	for _, o := range orders {
+		s.sendCh <- o
+	}
+	return nil
 }
 
 func (s *Service) runSendWorker(ctx context.Context, wg *sync.WaitGroup) {
@@ -65,23 +96,16 @@ func (s *Service) AddOrder(ctx context.Context, userID int, number string) error
 		UserID: userID,
 		Number: number,
 	}
-	o, err := s.s.AddOrder(ctx, m)
+	o, err := s.s.addOrder(ctx, m)
 	if errors.Is(err, ErrUniqueNum) {
 		if o.UserID != m.UserID {
 			return ErrOrderAnotherUser
 		}
 		return ErrExistsOrder
 	}
-	if err != nil {
-		return err
-	}
-	s.sendCh <- orderSend{
-		userID: userID,
-		number: number,
-	}
-	return nil
+	return err
 }
 
 func (s *Service) ListOrders(ctx context.Context, userID int) ([]Order, error) {
-	return s.s.ListOrders(ctx, userID)
+	return s.s.listOrders(ctx, userID)
 }
