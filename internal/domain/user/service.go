@@ -21,7 +21,6 @@ type Servicer interface {
 	RegisterUser(ctx context.Context, user User) (int, error)
 	LoginUser(ctx context.Context, user User) (int, error)
 	Balance(ctx context.Context, userID int) (Balance, error)
-	CanWithdraw(ctx context.Context, userID int, w float64) (bool, error)
 }
 
 func NewService(cfg *config.Config, store Storer) *Service {
@@ -71,12 +70,4 @@ func checkPasswordHash(password, hash string) bool {
 
 func (us *Service) Balance(ctx context.Context, userID int) (Balance, error) {
 	return us.s.Balance(ctx, userID)
-}
-
-func (us *Service) CanWithdraw(ctx context.Context, userID int, w float64) (bool, error) {
-	b, err := us.s.UserBalance(ctx, userID)
-	if err != nil {
-		return false, err
-	}
-	return b >= w, nil
 }

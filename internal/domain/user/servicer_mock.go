@@ -49,21 +49,6 @@ func (mr *MockServicerMockRecorder) Balance(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Balance", reflect.TypeOf((*MockServicer)(nil).Balance), arg0, arg1)
 }
 
-// CanWithdraw mocks base method.
-func (m *MockServicer) CanWithdraw(arg0 context.Context, arg1 int, arg2 float64) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CanWithdraw", arg0, arg1, arg2)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CanWithdraw indicates an expected call of CanWithdraw.
-func (mr *MockServicerMockRecorder) CanWithdraw(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanWithdraw", reflect.TypeOf((*MockServicer)(nil).CanWithdraw), arg0, arg1, arg2)
-}
-
 // LoginUser mocks base method.
 func (m *MockServicer) LoginUser(arg0 context.Context, arg1 User) (int, error) {
 	m.ctrl.T.Helper()

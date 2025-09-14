@@ -157,16 +157,12 @@ func (h *Handler) WithdrawBalance(w http.ResponseWriter, r *http.Request) {
 	if decodeJSONBody(w, r, &wr) {
 		return
 	}
-	ok, err := h.s.UserService.CanWithdraw(r.Context(), userID, wr.Sum)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if !ok {
+
+	err := h.s.WithdrawService.Add(r.Context(), userID, wr)
+	if errors.Is(err, withdraw.ErrLowBalance) {
 		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
-	err = h.s.WithdrawService.Add(r.Context(), userID, wr)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
