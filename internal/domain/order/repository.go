@@ -104,8 +104,8 @@ func (s *Store) listForAccrual(ctx context.Context) ([]orderSend, error) {
 	var orders []orderSend
 	for rows.Next() {
 		var o orderSend
-		if err = rows.Scan(o.number, o.userID); err != nil {
-			return nil, nil
+		if err = rows.Scan(&o.number, &o.userID); err != nil {
+			return nil, err
 		}
 		orders = append(orders, o)
 	}
