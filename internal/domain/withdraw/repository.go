@@ -2,9 +2,14 @@ package withdraw
 
 import (
 	"context"
+	"errors"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/spitfy/gofermart/internal/repository"
 )
+
+var ErrLowBalance = errors.New("not enough balance for withdrawal")
 
 type Storer interface {
 	Add(ctx context.Context, w Withdraw) error
@@ -12,26 +17,47 @@ type Storer interface {
 }
 
 type Store struct {
-	*repository.DBStore
+	pool *pgxpool.Pool
 }
 
 func NewStore(db *repository.DBStore) *Store {
 	return &Store{
-		DBStore: db,
+		pool: db.Pool(),
 	}
 }
 
-func (s *Store) Add(ctx context.Context, w Withdraw) error {
-	_, err := s.Conn.Exec(ctx,
+func (s *Store) Add(ctx context.Context, w Withdraw) (err error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	var balance float64
+	q := `SELECT balance FROM users WHERE id = $1 FOR UPDATE`
+	if err = tx.QueryRow(ctx, q, w.UserID).Scan(&balance); err != nil {
+		return err
+	}
+
+	if w.Amount > balance {
+		return ErrLowBalance
+	}
+	_, err = tx.Exec(ctx,
 		`INSERT INTO withdrawals (user_id, "order", amount) 
 					VALUES ($1, $2, $3)`,
 		w.UserID, w.Order, w.Amount,
 	)
+
+	err = tx.Commit(ctx)
 	return err
 }
 
 func (s *Store) List(ctx context.Context, userID int) ([]Withdraw, error) {
-	rows, err := s.Conn.Query(
+	rows, err := s.pool.Query(
 		ctx,
 		`SELECT w.order, w.amount, w.created_at 
 			   FROM withdrawals w

@@ -22,6 +22,12 @@ type Service struct {
 	sendCh chan orderSend
 }
 
+type Servicer interface {
+	runSendWorker(ctx context.Context, wg *sync.WaitGroup)
+	AddOrder(ctx context.Context, userID int, number string) error
+	ListOrders(ctx context.Context, userID int) ([]Order, error)
+}
+
 func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Service {
 	s := Service{
 		cfg:    cfg,

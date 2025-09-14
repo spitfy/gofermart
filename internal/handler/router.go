@@ -25,10 +25,10 @@ func newRouter(h *Handler) *chi.Mux {
 }
 
 type Service struct {
-	Auth            *auth.Service
-	UserService     *user.Service
-	OrderService    *order.Service
-	WithdrawService *withdraw.Service
+	Auth            auth.Servicer
+	UserService     user.Servicer
+	OrderService    order.Servicer
+	WithdrawService withdraw.Servicer
 	Logger          *logger.Logger
 }
 

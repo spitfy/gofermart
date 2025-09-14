@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spitfy/gofermart/internal/repository"
@@ -15,19 +17,19 @@ type Storer interface {
 }
 
 type Store struct {
-	*repository.DBStore
+	pool *pgxpool.Pool
 }
 
 func NewStore(db *repository.DBStore) *Store {
 	return &Store{
-		DBStore: db,
+		pool: db.Pool(),
 	}
 }
 
 var ErrUniqueNum = errors.New("order number already exists")
 
 func (s *Store) AddOrder(ctx context.Context, order Order) (Order, error) {
-	_, err := s.Conn.Exec(ctx,
+	_, err := s.pool.Exec(ctx,
 		`INSERT INTO orders (user_id, number) VALUES ($1, $2)`,
 		order.UserID, order.Number,
 	)
@@ -36,7 +38,7 @@ func (s *Store) AddOrder(ctx context.Context, order Order) (Order, error) {
 	case errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation:
 		var userID int
 		var st status
-		err = s.Conn.QueryRow(
+		err = s.pool.QueryRow(
 			ctx,
 			`SELECT o.user_id, coalesce(a.status, $1) 
 				   FROM orders o  
@@ -60,7 +62,7 @@ func (s *Store) AddOrder(ctx context.Context, order Order) (Order, error) {
 }
 
 func (s *Store) ListOrders(ctx context.Context, userID int) ([]Order, error) {
-	rows, err := s.Conn.Query(
+	rows, err := s.pool.Query(
 		ctx,
 		`SELECT coalesce(a.status, $1), o.number, coalesce(a.amount, 0), o.created_at 
 			   FROM orders o

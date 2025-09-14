@@ -16,6 +16,14 @@ type Service struct {
 	secretKey []byte
 }
 
+//go:generate mockgen -destination=servicer_mock.go -package=auth github.com/spitfy/gofermart/internal/middleware/auth Servicer
+type Servicer interface {
+	GetTokenFromCookie(r *http.Request) (string, error)
+	BuildJWT(userID int) (string, error)
+	ParseUserID(tokenStr string) (int, error)
+	CreateToken(w http.ResponseWriter, userID int) (string, error)
+}
+
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID int

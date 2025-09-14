@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
@@ -13,6 +14,15 @@ type Service struct {
 	s   Storer
 }
 
+var ErrEmptyPass = errors.New("password should be not empty")
+
+//go:generate mockgen -destination=servicer_mock.go -package=user github.com/spitfy/gofermart/internal/domain/user Servicer
+type Servicer interface {
+	RegisterUser(ctx context.Context, user User) (int, error)
+	LoginUser(ctx context.Context, user User) (int, error)
+	Balance(ctx context.Context, userID int) (Balance, error)
+}
+
 func NewService(cfg *config.Config, store Storer) *Service {
 	return &Service{
 		cfg: cfg,
@@ -21,9 +31,12 @@ func NewService(cfg *config.Config, store Storer) *Service {
 }
 
 func (us *Service) RegisterUser(ctx context.Context, user User) (int, error) {
+	if len(user.Password) == 0 {
+		return -1, ErrEmptyPass
+	}
 	hash, err := hashPassword(user.Password)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 	user.Password = hash
 	return us.s.RegisterUser(ctx, user)
@@ -57,12 +70,4 @@ func checkPasswordHash(password, hash string) bool {
 
 func (us *Service) Balance(ctx context.Context, userID int) (Balance, error) {
 	return us.s.Balance(ctx, userID)
-}
-
-func (us *Service) CanWithdraw(ctx context.Context, userID int, w float64) (bool, error) {
-	b, err := us.s.UserBalance(ctx, userID)
-	if err != nil {
-		return false, err
-	}
-	return b >= w, nil
 }

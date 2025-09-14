@@ -11,6 +11,11 @@ type Service struct {
 	s   Storer
 }
 
+type Servicer interface {
+	Add(ctx context.Context, userID int, req Request) error
+	List(ctx context.Context, userID int) ([]Withdraw, error)
+}
+
 func NewService(cfg *config.Config, store Storer) *Service {
 	return &Service{
 		cfg: cfg,

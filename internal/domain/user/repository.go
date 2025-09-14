@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spitfy/gofermart/internal/repository"
@@ -14,9 +16,10 @@ var (
 )
 
 type Store struct {
-	*repository.DBStore
+	pool *pgxpool.Pool
 }
 
+//go:generate mockgen -destination=storer_mock.go -package=user github.com/spitfy/gofermart/internal/domain/user Storer
 type Storer interface {
 	RegisterUser(ctx context.Context, user User) (int, error)
 	PassByLogin(ctx context.Context, login string) (AuthUser, error)
@@ -26,13 +29,19 @@ type Storer interface {
 
 func NewStore(db *repository.DBStore) *Store {
 	return &Store{
-		DBStore: db,
+		pool: db.Pool(),
 	}
 }
 
-func (s *Store) RegisterUser(ctx context.Context, user User) (int, error) {
-	var id int
-	err := s.Conn.QueryRow(ctx,
+func (s *Store) RegisterUser(ctx context.Context, user User) (id int, err error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return -1, err
+	}
+	defer func() {
+		err = errors.Join(err, tx.Commit(ctx))
+	}()
+	err = tx.QueryRow(ctx,
 		`INSERT INTO users (login, password) VALUES ($1, $2) RETURNING id`,
 		user.Login, user.Password,
 	).Scan(&id)
@@ -50,7 +59,7 @@ func (s *Store) RegisterUser(ctx context.Context, user User) (int, error) {
 func (s *Store) PassByLogin(ctx context.Context, login string) (AuthUser, error) {
 	var id int
 	var password string
-	err := s.Conn.QueryRow(ctx,
+	err := s.pool.QueryRow(ctx,
 		`SELECT id, password FROM users WHERE login = $1`,
 		login,
 	).Scan(&id, &password)
@@ -66,7 +75,7 @@ func (s *Store) PassByLogin(ctx context.Context, login string) (AuthUser, error)
 
 func (s *Store) UserBalance(ctx context.Context, userID int) (float64, error) {
 	var balance float64
-	err := s.Conn.QueryRow(ctx,
+	err := s.pool.QueryRow(ctx,
 		`SELECT balance FROM users WHERE id = $1`,
 		userID,
 	).Scan(&balance)
@@ -75,7 +84,7 @@ func (s *Store) UserBalance(ctx context.Context, userID int) (float64, error) {
 
 func (s *Store) Balance(ctx context.Context, userID int) (Balance, error) {
 	var balance Balance
-	err := s.Conn.QueryRow(
+	err := s.pool.QueryRow(
 		ctx,
 		`select (SELECT balance FROM users WHERE id = $1), 
        				(select coalesce(SUM(amount), 0) from withdrawals where user_id = $1)`,
