@@ -3,6 +3,8 @@ package withdraw
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/spitfy/gofermart/internal/repository"
 )
 
@@ -12,17 +14,17 @@ type Storer interface {
 }
 
 type Store struct {
-	*repository.DBStore
+	pool *pgxpool.Pool
 }
 
 func NewStore(db *repository.DBStore) *Store {
 	return &Store{
-		DBStore: db,
+		pool: db.Pool(),
 	}
 }
 
 func (s *Store) Add(ctx context.Context, w Withdraw) error {
-	_, err := s.Conn.Exec(ctx,
+	_, err := s.pool.Exec(ctx,
 		`INSERT INTO withdrawals (user_id, "order", amount) 
 					VALUES ($1, $2, $3)`,
 		w.UserID, w.Order, w.Amount,
@@ -31,7 +33,7 @@ func (s *Store) Add(ctx context.Context, w Withdraw) error {
 }
 
 func (s *Store) List(ctx context.Context, userID int) ([]Withdraw, error) {
-	rows, err := s.Conn.Query(
+	rows, err := s.pool.Query(
 		ctx,
 		`SELECT w.order, w.amount, w.created_at 
 			   FROM withdrawals w
