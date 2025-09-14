@@ -25,7 +25,10 @@ type Config struct {
 	Logger  loggerConf.Config
 }
 
-var SecretKey = "SecRetKey"
+var (
+	SecretKey       = "SecRetKey"
+	AccrualInterval = 1
+)
 
 type Default struct {
 	RunAddress      string
@@ -63,6 +66,9 @@ func newDefault() (*Default, error) {
 	}
 	if d.Secret == "" {
 		d.Secret = SecretKey
+	}
+	if d.AccrualInterval == 0 {
+		d.AccrualInterval = AccrualInterval
 	}
 	return &d, nil
 }
