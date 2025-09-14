@@ -33,9 +33,15 @@ func NewStore(db *repository.DBStore) *Store {
 	}
 }
 
-func (s *Store) RegisterUser(ctx context.Context, user User) (int, error) {
-	var id int
-	err := s.pool.QueryRow(ctx,
+func (s *Store) RegisterUser(ctx context.Context, user User) (id int, err error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return -1, err
+	}
+	defer func() {
+		err = errors.Join(err, tx.Commit(ctx))
+	}()
+	err = tx.QueryRow(ctx,
 		`INSERT INTO users (login, password) VALUES ($1, $2) RETURNING id`,
 		user.Login, user.Password,
 	).Scan(&id)
