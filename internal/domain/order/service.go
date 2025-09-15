@@ -22,7 +22,7 @@ var (
 type Service struct {
 	cfg    *config.Config
 	s      Storer
-	as     *accrualServ.Service
+	as     accrualServ.Servicer
 	sendCh chan orderSend
 }
 
@@ -32,7 +32,7 @@ type Servicer interface {
 	ListOrders(ctx context.Context, userID int) ([]Order, error)
 }
 
-func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Service {
+func NewService(cfg *config.Config, store Storer, as accrualServ.Servicer) *Service {
 	s := Service{
 		cfg:    cfg,
 		s:      store,
@@ -47,11 +47,11 @@ func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Serv
 		for {
 			select {
 			case <-ticker.C:
-				if err := s.listForAccrual(as.Ctx); err != nil {
+				if err := s.listForAccrual(as.Context()); err != nil {
 					log.Println("Query error:", err)
 				}
 			case <-quit:
-			case <-as.Ctx.Done():
+			case <-as.Context().Done():
 				ticker.Stop()
 				return
 			}
@@ -59,9 +59,9 @@ func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Serv
 	}()
 
 	maxProcs := runtime.GOMAXPROCS(0)
-	as.Wg.Add(maxProcs)
+	as.WaitGroup().Add(maxProcs)
 	for i := 0; i < maxProcs; i++ {
-		go s.runSendWorker(as.Ctx, as.Wg, as.Await)
+		go s.runSendWorker(as.Context(), as.WaitGroup(), as.AwaitTime())
 	}
 
 	return &s

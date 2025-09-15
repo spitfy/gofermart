@@ -27,19 +27,39 @@ func NewService(ctx context.Context, cfg *config.Config, as *accrual.Service, wg
 	s := Service{
 		cfg: cfg,
 		s:   as,
-		Ctx: ctx,
-		Wg:  wg,
+		ctx: ctx,
+		wg:  wg,
 	}
-	s.Await.Store(t)
+	s.await.Store(t)
 	return &s
+}
+
+//go:generate mockgen -destination=servicer_mock.go -package=accrual github.com/spitfy/gofermart/internal/service/external/accrual Servicer
+type Servicer interface {
+	Call(userID int, orderNumber string)
+	Context() context.Context
+	WaitGroup() *sync.WaitGroup
+	AwaitTime() atomic.Time
 }
 
 type Service struct {
 	cfg   *config.Config
 	s     *accrual.Service
-	Ctx   context.Context
-	Wg    *sync.WaitGroup
-	Await atomic.Time
+	ctx   context.Context
+	wg    *sync.WaitGroup
+	await atomic.Time
+}
+
+func (s *Service) Context() context.Context {
+	return s.ctx
+}
+
+func (s *Service) WaitGroup() *sync.WaitGroup {
+	return s.wg
+}
+
+func (s *Service) AwaitTime() atomic.Time {
+	return s.await
 }
 
 func (s *Service) Call(userID int, orderNumber string) {
@@ -75,7 +95,7 @@ func (s *Service) Call(userID int, orderNumber string) {
 			delay = 1
 		}
 		t := time.Now().Add(time.Duration(delay) * time.Second)
-		s.Await.Store(t)
+		s.await.Store(t)
 	case http.StatusInternalServerError:
 		log.Println("========= accrual StatusInternalServerError orderNumber: ", orderNumber)
 		return
