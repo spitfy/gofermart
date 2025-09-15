@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/atomic"
+
 	"github.com/spitfy/gofermart/internal/config"
 	accrualServ "github.com/spitfy/gofermart/internal/service/external/accrual"
 )
@@ -25,7 +27,7 @@ type Service struct {
 }
 
 type Servicer interface {
-	runSendWorker(ctx context.Context, wg *sync.WaitGroup)
+	runSendWorker(ctx context.Context, wg *sync.WaitGroup, await atomic.Time)
 	AddOrder(ctx context.Context, userID int, number string) error
 	ListOrders(ctx context.Context, userID int) ([]Order, error)
 }
@@ -59,7 +61,7 @@ func NewService(cfg *config.Config, store Storer, as *accrualServ.Service) *Serv
 	maxProcs := runtime.GOMAXPROCS(0)
 	as.Wg.Add(maxProcs)
 	for i := 0; i < maxProcs; i++ {
-		go s.runSendWorker(as.Ctx, as.Wg)
+		go s.runSendWorker(as.Ctx, as.Wg, as.Await)
 	}
 
 	return &s
@@ -76,13 +78,24 @@ func (s *Service) listForAccrual(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) runSendWorker(ctx context.Context, wg *sync.WaitGroup) {
+func (s *Service) runSendWorker(ctx context.Context, wg *sync.WaitGroup, await atomic.Time) {
 	defer wg.Done()
 	for {
 		select {
 		case os, ok := <-s.sendCh:
 			if !ok {
 				return
+			}
+			now := time.Now()
+			t := await.Load()
+			if now.Before(t) {
+				timer := time.NewTimer(t.Sub(now))
+				select {
+				case <-timer.C:
+				case <-ctx.Done():
+					timer.Stop()
+					return
+				}
 			}
 			s.as.Call(os.userID, os.number)
 		case <-ctx.Done():
