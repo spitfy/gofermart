@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/atomic"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/domain/accrual"
@@ -20,64 +22,85 @@ type Storer interface {
 	Add(a accrual.Accrual) error
 }
 
-func NewService(ctx context.Context, cfg *config.Config, s *accrual.Service, wg *sync.WaitGroup) *Service {
-	return &Service{
+func NewService(ctx context.Context, cfg *config.Config, as *accrual.Service, wg *sync.WaitGroup) *Service {
+	t := time.Now()
+	s := Service{
 		cfg: cfg,
-		s:   s,
-		Ctx: ctx,
-		Wg:  wg,
+		s:   as,
+		ctx: ctx,
+		wg:  wg,
 	}
+	s.await.Store(t)
+	return &s
+}
+
+//go:generate mockgen -destination=servicer_mock.go -package=accrual github.com/spitfy/gofermart/internal/service/external/accrual Servicer
+type Servicer interface {
+	Call(userID int, orderNumber string)
+	Context() context.Context
+	WaitGroup() *sync.WaitGroup
+	AwaitTime() atomic.Time
 }
 
 type Service struct {
-	cfg *config.Config
-	s   *accrual.Service
-	Ctx context.Context
-	Wg  *sync.WaitGroup
+	cfg   *config.Config
+	s     *accrual.Service
+	ctx   context.Context
+	wg    *sync.WaitGroup
+	await atomic.Time
+}
+
+func (s *Service) Context() context.Context {
+	return s.ctx
+}
+
+func (s *Service) WaitGroup() *sync.WaitGroup {
+	return s.wg
+}
+
+func (s *Service) AwaitTime() atomic.Time {
+	return s.await
 }
 
 func (s *Service) Call(userID int, orderNumber string) {
 	client := resty.New()
-
-	for {
-		resp, err := client.R().
-			SetHeader("Content-Length", "0").
-			Get(fmt.Sprintf("%s/api/orders/%s", s.cfg.Accrual.SystemAddress, orderNumber))
+	resp, err := client.R().
+		SetHeader("Content-Length", "0").
+		Get(fmt.Sprintf("%s/api/orders/%s", s.cfg.Accrual.SystemAddress, orderNumber))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if resp == nil {
+		log.Println("received nil response from accrual service")
+		return
+	}
+	switch resp.StatusCode() {
+	case http.StatusOK:
+		log.Println("========= accrual StatusOK orderNumber: ", orderNumber)
+		a, err := s.prepare(userID, resp.Body())
 		if err != nil {
 			log.Println(err)
-			return
 		}
-		if resp == nil {
-			log.Println("received nil response from accrual service")
-			return
+		s.save(a)
+		return
+	case http.StatusNoContent:
+		log.Println("========= accrual StatusNoContent orderNumber: ", orderNumber)
+		return
+	case http.StatusTooManyRequests:
+		log.Println("========= accrual StatusTooManyRequests orderNumber: ", orderNumber)
+		retryAfter := resp.Header().Get("Retry-After")
+		delay, err := strconv.Atoi(retryAfter)
+		if err != nil || delay <= 0 {
+			delay = 1
 		}
-		switch resp.StatusCode() {
-		case http.StatusOK:
-			log.Println("========= accrual StatusOK orderNumber: ", orderNumber)
-			a, err := s.prepare(userID, resp.Body())
-			if err != nil {
-				log.Println(err)
-			}
-			s.save(a)
-			return
-		case http.StatusNoContent:
-			log.Println("========= accrual StatusNoContent orderNumber: ", orderNumber)
-			return
-		case http.StatusTooManyRequests:
-			log.Println("========= accrual StatusTooManyRequests orderNumber: ", orderNumber)
-			retryAfter := resp.Header().Get("Retry-After")
-			delay, err := strconv.Atoi(retryAfter)
-			if err != nil || delay <= 0 {
-				delay = 1
-			}
-			time.Sleep(time.Duration(delay) * time.Second)
-			continue // повторить запрос после паузы
-		case http.StatusInternalServerError:
-			log.Println("========= accrual StatusInternalServerError orderNumber: ", orderNumber)
-			return
-		default:
-			return
-		}
+		t := time.Now().Add(time.Duration(delay) * time.Second)
+		s.await.Store(t)
+	case http.StatusInternalServerError:
+		log.Println("========= accrual StatusInternalServerError orderNumber: ", orderNumber)
+		return
+	default:
+		return
 	}
 }
 
