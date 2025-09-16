@@ -26,6 +26,7 @@ type Service struct {
 	sendCh chan orderSend
 }
 
+//go:generate mockgen -destination=servicer_mock.go -package=order github.com/spitfy/gofermart/internal/domain/order Servicer
 type Servicer interface {
 	runSendWorker(ctx context.Context, wg *sync.WaitGroup, await atomic.Time)
 	AddOrder(ctx context.Context, userID int, number string) error

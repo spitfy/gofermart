@@ -11,6 +11,7 @@ import (
 	"github.com/spitfy/gofermart/internal/repository"
 )
 
+//go:generate mockgen -destination=storer_mock.go -package=order github.com/spitfy/gofermart/internal/domain/order Storer
 type Storer interface {
 	addOrder(ctx context.Context, order Order) (Order, error)
 	listOrders(ctx context.Context, UserID int) ([]Order, error)

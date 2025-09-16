@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupRegisterUserTest(t *testing.T) (userServicer *user.MockServicer, authServicer *auth.MockServicer, handler *Handler) {
+func setupUserTest(t *testing.T) (userServicer *user.MockServicer, authServicer *auth.MockServicer, handler *Handler) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
@@ -90,7 +90,7 @@ func TestHandler_RegisterUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u, a, h := setupRegisterUserTest(t)
+			u, a, h := setupUserTest(t)
 
 			srv := httptest.NewServer(http.HandlerFunc(h.RegisterUser))
 			defer srv.Close()
@@ -181,7 +181,7 @@ func TestHandler_LoginUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u, a, h := setupRegisterUserTest(t)
+			u, a, h := setupUserTest(t)
 
 			srv := httptest.NewServer(http.HandlerFunc(h.LoginUser))
 			defer srv.Close()
@@ -247,7 +247,7 @@ func TestHandler_GetUserBalance(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u, _, h := setupRegisterUserTest(t)
+			u, _, h := setupUserTest(t)
 
 			uMock := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				ctx := r.Context()
