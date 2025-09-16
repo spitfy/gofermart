@@ -4,11 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/spitfy/gofermart/internal/domain/order"
-	"github.com/spitfy/gofermart/internal/domain/user"
-	"github.com/spitfy/gofermart/internal/domain/withdraw"
-	"github.com/spitfy/gofermart/internal/middleware/auth"
-	"github.com/spitfy/gofermart/internal/middleware/logger"
 )
 
 func newRouter(h *Handler) *chi.Mux {
@@ -22,24 +17,6 @@ func newRouter(h *Handler) *chi.Mux {
 	r.Post("/api/user/balance/withdraw", h.s.Logger.LogInfo(h.authMiddleware(h.WithdrawBalance)))
 
 	return r
-}
-
-type Service struct {
-	Auth            auth.Servicer
-	UserService     user.Servicer
-	OrderService    order.Servicer
-	WithdrawService withdraw.Servicer
-	Logger          *logger.Logger
-}
-
-type Handler struct {
-	s Service
-}
-
-func newHandler(service Service) *Handler {
-	return &Handler{
-		s: service,
-	}
 }
 
 func NewRouter(service Service) http.Handler {
