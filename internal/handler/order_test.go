@@ -147,7 +147,7 @@ func TestHandler_ListOrders(t *testing.T) {
 			name:         "unauthorized no userID",
 			userID:       nil,
 			expectedCode: http.StatusUnauthorized,
-			mockSetup:    func(o *order.MockServicer) {},
+			mockSetup:    func(_ *order.MockServicer) {},
 		},
 		{
 			name:         "internal error from order service",

@@ -53,7 +53,7 @@ func TestHandler_RegisterUser(t *testing.T) {
 			expectedCode: http.StatusConflict,
 			body:         `{"login":"test", "password":"test"}`,
 			user:         user.User{Login: "test", Password: "test"},
-			mockSetup: func(u *user.MockServicer, a *auth.MockServicer) {
+			mockSetup: func(u *user.MockServicer, _ *auth.MockServicer) {
 				u.EXPECT().RegisterUser(gomock.Any(), gomock.Any()).Return(0, user.ErrExistsUser).Times(1)
 			},
 		},
@@ -63,7 +63,7 @@ func TestHandler_RegisterUser(t *testing.T) {
 			expectedCode: http.StatusInternalServerError,
 			body:         `{"login":"test", "password":"test"}`,
 			user:         user.User{Login: "test", Password: "test"},
-			mockSetup: func(u *user.MockServicer, a *auth.MockServicer) {
+			mockSetup: func(u *user.MockServicer, _ *auth.MockServicer) {
 				u.EXPECT().RegisterUser(gomock.Any(), gomock.Any()).Return(0, errors.New("fail")).Times(1)
 			},
 		},
@@ -84,7 +84,7 @@ func TestHandler_RegisterUser(t *testing.T) {
 			expectedCode: http.StatusBadRequest,
 			body:         "",
 			user:         user.User{},
-			mockSetup:    func(u *user.MockServicer, a *auth.MockServicer) {},
+			mockSetup:    func(_ *user.MockServicer, _ *auth.MockServicer) {},
 		},
 	}
 
