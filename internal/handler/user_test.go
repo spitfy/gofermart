@@ -134,7 +134,7 @@ func TestHandler_LoginUser(t *testing.T) {
 			expectedCode: http.StatusUnauthorized,
 			body:         `{"login":"wrong", "password":"wrong"}`,
 			user:         user.User{Login: "wrong", Password: "wrong"},
-			mockSetup: func(u *user.MockServicer, a *auth.MockServicer) {
+			mockSetup: func(u *user.MockServicer, _ *auth.MockServicer) {
 				u.EXPECT().LoginUser(gomock.Any(), gomock.Any()).Return(0, auth.ErrUnAuth).Times(1)
 			},
 		},
@@ -165,7 +165,7 @@ func TestHandler_LoginUser(t *testing.T) {
 			expectedCode: http.StatusBadRequest,
 			body:         "",
 			user:         user.User{},
-			mockSetup: func(u *user.MockServicer, a *auth.MockServicer) {
+			mockSetup: func(_ *user.MockServicer, _ *auth.MockServicer) {
 			},
 		},
 		{
@@ -174,7 +174,7 @@ func TestHandler_LoginUser(t *testing.T) {
 			expectedCode: http.StatusBadRequest,
 			body:         `{"login": "test", "password":`, // invalid JSON
 			user:         user.User{},
-			mockSetup: func(u *user.MockServicer, a *auth.MockServicer) {
+			mockSetup: func(_ *user.MockServicer, _ *auth.MockServicer) {
 			},
 		},
 	}
