@@ -11,6 +11,7 @@ type Service struct {
 	s   Storer
 }
 
+//go:generate mockgen -destination=servicer_mock.go -package=withdraw github.com/spitfy/gofermart/internal/domain/withdraw Servicer
 type Servicer interface {
 	Add(ctx context.Context, userID int, req Request) error
 	List(ctx context.Context, userID int) ([]Withdraw, error)
