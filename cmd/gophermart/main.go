@@ -43,7 +43,7 @@ func main() {
 
 	<-quit
 
-	a.Ctx.Cancel()
+	a.Cancel()
 	a.Wg.Wait()
 
 	log.Println("Shutting down server...")

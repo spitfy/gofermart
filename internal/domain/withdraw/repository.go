@@ -11,6 +11,7 @@ import (
 
 var ErrLowBalance = errors.New("not enough balance for withdrawal")
 
+//go:generate mockgen -destination=storer_mock.go -package=withdraw github.com/spitfy/gofermart/internal/domain/withdraw Storer
 type Storer interface {
 	Add(ctx context.Context, w Withdraw) error
 	List(ctx context.Context, userID int) ([]Withdraw, error)
