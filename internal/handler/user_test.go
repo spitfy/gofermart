@@ -144,7 +144,7 @@ func TestHandler_LoginUser(t *testing.T) {
 			expectedCode: http.StatusInternalServerError,
 			body:         `{"login":"test", "password":"test"}`,
 			user:         user.User{Login: "test", Password: "test"},
-			mockSetup: func(u *user.MockServicer, a *auth.MockServicer) {
+			mockSetup: func(u *user.MockServicer, _ *auth.MockServicer) {
 				u.EXPECT().LoginUser(gomock.Any(), gomock.Any()).Return(0, errors.New("db error")).Times(1)
 			},
 		},
@@ -211,7 +211,7 @@ func TestHandler_GetUserBalance(t *testing.T) {
 			name:         "unauthorized no userID",
 			userID:       nil,
 			expectedCode: http.StatusUnauthorized,
-			mockSetup:    func(u *user.MockServicer) {},
+			mockSetup:    func(_ *user.MockServicer) {},
 		},
 		{
 			name:         "internal error from balance",
