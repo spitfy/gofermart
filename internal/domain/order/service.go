@@ -34,25 +34,27 @@ type Servicer interface {
 }
 
 func NewService(cfg *config.Config, store Storer, as accrualServ.Servicer) *Service {
-	s := Service{
+	return &Service{
 		cfg:    cfg,
 		s:      store,
 		as:     as,
-		sendCh: make(chan orderSend),
+		sendCh: make(chan orderSend, 100),
 	}
+}
 
-	ticker := time.NewTicker(time.Duration(cfg.Accrual.Interval) * time.Second)
+func (s *Service) Start(ctx context.Context) {
+	ticker := time.NewTicker(time.Duration(s.cfg.Accrual.Interval) * time.Second)
 	quit := make(chan struct{})
 
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				if err := s.listForAccrual(as.Context()); err != nil {
+				if err := s.listForAccrual(s.as.Context()); err != nil {
 					log.Println("Query error:", err)
 				}
 			case <-quit:
-			case <-as.Context().Done():
+			case <-ctx.Done():
 				ticker.Stop()
 				return
 			}
@@ -60,12 +62,10 @@ func NewService(cfg *config.Config, store Storer, as accrualServ.Servicer) *Serv
 	}()
 
 	maxProcs := runtime.GOMAXPROCS(0)
-	as.WaitGroup().Add(maxProcs)
+	s.as.WaitGroup().Add(maxProcs)
 	for i := 0; i < maxProcs; i++ {
-		go s.runSendWorker(as.Context(), as.WaitGroup(), as.AwaitTime())
+		go s.runSendWorker(ctx, s.as.WaitGroup(), s.as.AwaitTime())
 	}
-
-	return &s
 }
 
 func (s *Service) listForAccrual(ctx context.Context) error {
