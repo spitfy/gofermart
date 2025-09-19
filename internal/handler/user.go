@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/spitfy/gofermart/internal/domain/user"
@@ -24,11 +25,13 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if _, err = h.s.Auth.CreateToken(w, id); err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -48,6 +51,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	} else if err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -65,12 +69,14 @@ func (h *Handler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 	}
 	balance, err := h.s.UserService.Balance(r.Context(), userID)
 	if err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(balance); err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		http.Error(w, "encoding error", http.StatusInternalServerError)
 		return
 	}

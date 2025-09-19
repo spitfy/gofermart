@@ -95,7 +95,9 @@ func (s *Service) Call(userID int, orderNumber string) {
 			delay = 1
 		}
 		t := time.Now().Add(time.Duration(delay) * time.Second)
-		s.await.Store(t)
+		if atomicValue := s.await.Load(); t.After(atomicValue) {
+			s.await.Store(t)
+		}
 	case http.StatusInternalServerError:
 		log.Println("========= accrual StatusInternalServerError orderNumber: ", orderNumber)
 		return

@@ -1,3 +1,4 @@
+BEGIN;
 -- Таблица пользователей
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -46,3 +47,4 @@ ALTER TABLE withdrawals OWNER TO postgres;
 CREATE INDEX IF NOT EXISTS idx_accruals_user_id ON accruals(user_id);
 CREATE INDEX IF NOT EXISTS idx_withdrawals_user_id ON withdrawals(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+COMMIT;

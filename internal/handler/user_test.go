@@ -18,6 +18,7 @@ import (
 )
 
 func setupUserTest(t *testing.T) (userServicer *user.MockServicer, authServicer *auth.MockServicer, handler *Handler) {
+	t.Helper()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
