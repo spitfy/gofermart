@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"sync"
 
+	"go.uber.org/zap"
+
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/domain/accrual"
 	"github.com/spitfy/gofermart/internal/domain/order"
@@ -38,6 +40,8 @@ func (a *App) Init() (*App, error) {
 	var ctx context.Context
 	ctx, a.Cancel = context.WithCancel(context.Background())
 
+	log := zap.NewNop()
+
 	accrualStore := accrual.NewStore(a.db)
 	as := accrual.NewService(a.cfg, accrualStore)
 
@@ -52,13 +56,13 @@ func (a *App) Init() (*App, error) {
 		return a, err
 	}
 
-	os := order.NewService(a.cfg, orderStore, extAs)
+	os := order.NewService(a.cfg, orderStore, extAs, log)
 	os.Start(ctx)
 
 	a.S = handler.Service{
 		Auth:            auth.New(a.cfg.Auth.SecretKey),
 		UserService:     user.NewService(a.cfg, userStore),
-		OrderService:    order.NewService(a.cfg, orderStore, extAs),
+		OrderService:    os,
 		WithdrawService: withdraw.NewService(a.cfg, withdrawStore),
 		Logger:          l,
 	}
