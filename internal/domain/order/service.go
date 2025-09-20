@@ -3,10 +3,13 @@ package order
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"runtime"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/cenkalti/backoff/v5"
 
@@ -26,6 +29,7 @@ type Service struct {
 	s      Storer
 	as     accrualServ.Servicer
 	sendCh chan orderSend
+	log    *zap.Logger
 }
 
 //go:generate mockgen -destination=servicer_mock.go -package=order github.com/spitfy/gofermart/internal/domain/order Servicer
@@ -35,12 +39,16 @@ type Servicer interface {
 	ListOrders(ctx context.Context, userID int) ([]Order, error)
 }
 
-func NewService(cfg *config.Config, store Storer, as accrualServ.Servicer) *Service {
+func NewService(cfg *config.Config, store Storer, as accrualServ.Servicer, logger *zap.Logger) *Service {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	return &Service{
 		cfg:    cfg,
 		s:      store,
 		as:     as,
 		sendCh: make(chan orderSend, 100),
+		log:    logger,
 	}
 }
 
@@ -108,24 +116,23 @@ func (s *Service) runSendWorker(ctx context.Context, wg *sync.WaitGroup, await a
 }
 
 func (s *Service) AddOrder(ctx context.Context, userID int, number string) error {
-	m := Order{
-		UserID: userID,
-		Number: number,
-	}
+	order := Order{UserID: userID, Number: number}
 
-	addOrder := func() (Order, error) {
-		return s.s.addOrder(ctx, m)
-	}
+	result, err := backoff.Retry(ctx,
+		func() (Order, error) { return s.s.addOrder(ctx, order) },
+		backoff.WithMaxTries(s.cfg.DB.MaxRetries),
+	)
 
-	o, err := backoff.Retry(ctx, addOrder, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(s.cfg.DB.MaxRetries))
-	if err != nil {
-		if errors.Is(err, ErrUniqueNum) {
-			if o.UserID != m.UserID {
-				return ErrOrderAnotherUser
-			}
-			return ErrExistsOrder
+	switch {
+	case errors.Is(err, ErrUniqueNum):
+		if result.UserID != userID {
+			s.log.Warn("order conflict", zap.String("number", number), zap.Int("owner", result.UserID))
+			return ErrOrderAnotherUser
 		}
-		return err
+		return ErrExistsOrder
+
+	case err != nil:
+		return fmt.Errorf("order creation failed: %w", err) // Оборачиваем для контекста
 	}
 	return nil
 }

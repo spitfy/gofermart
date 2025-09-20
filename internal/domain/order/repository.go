@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -35,32 +36,29 @@ func (s *Store) addOrder(ctx context.Context, order Order) (Order, error) {
 		`INSERT INTO orders (user_id, number) VALUES ($1, $2)`,
 		order.UserID, order.Number,
 	)
+
 	var pgErr *pgconn.PgError
 	switch {
 	case errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation:
-		var userID int
-		var st status
+		var existing Order
 		err = s.pool.QueryRow(
 			ctx,
-			`SELECT o.user_id, coalesce(a.status, $1) 
-				   FROM orders o  
-				   		left join accruals a on a.order_id = o.id 
-				  WHERE number=$2`,
+			`SELECT o.user_id, COALESCE(a.status, $1) 
+			 FROM orders o  
+             LEFT JOIN accruals a ON a.order_id = o.id 
+             WHERE number = $2`,
 			StatusNew, order.Number,
-		).Scan(&userID, &st)
-		if err != nil {
-			return order, err
-		}
+		).Scan(&existing.UserID, &existing.Status)
 
-		return Order{
-			UserID: userID,
-			Status: st,
-		}, ErrUniqueNum
+		if err != nil {
+			return Order{}, fmt.Errorf("fetch order error: %w", err)
+		}
+		return existing, ErrExistsOrder
+
 	case err != nil:
-		return order, err
-	default:
-		return order, nil
+		return Order{}, fmt.Errorf("failed to create order %s: %w", order.Number, err)
 	}
+	return order, nil
 }
 
 func (s *Store) listOrders(ctx context.Context, userID int) ([]Order, error) {
