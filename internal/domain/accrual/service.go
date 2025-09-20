@@ -3,6 +3,8 @@ package accrual
 import (
 	"context"
 
+	"github.com/cenkalti/backoff/v5"
+
 	"github.com/spitfy/gofermart/internal/config"
 )
 
@@ -19,5 +21,11 @@ func NewService(cfg *config.Config, store Storer) *Service {
 }
 
 func (s *Service) Add(ctx context.Context, a Accrual) error {
-	return s.s.Add(ctx, a)
+	add := func() (struct{}, error) {
+		err := s.s.Add(ctx, a)
+		return struct{}{}, err
+	}
+	_, err := backoff.Retry(ctx, add, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(s.cfg.DB.MaxRetries))
+
+	return err
 }

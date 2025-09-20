@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/cenkalti/backoff/v5"
+
 	"github.com/spitfy/gofermart/internal/config"
 	"github.com/spitfy/gofermart/internal/middleware/auth"
 	"golang.org/x/crypto/bcrypt"
@@ -39,7 +41,11 @@ func (us *Service) RegisterUser(ctx context.Context, user User) (int, error) {
 		return -1, err
 	}
 	user.Password = hash
-	return us.s.RegisterUser(ctx, user)
+
+	add := func() (int, error) {
+		return us.s.RegisterUser(ctx, user)
+	}
+	return backoff.Retry(ctx, add, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(us.cfg.DB.MaxRetries))
 }
 
 func (us *Service) LoginUser(ctx context.Context, user User) (int, error) {

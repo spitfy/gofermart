@@ -3,6 +3,8 @@ package withdraw
 import (
 	"context"
 
+	"github.com/cenkalti/backoff/v5"
+
 	"github.com/spitfy/gofermart/internal/config"
 )
 
@@ -30,7 +32,13 @@ func (s *Service) Add(ctx context.Context, userID int, req Request) error {
 		Order:  req.Order,
 		Amount: req.Sum,
 	}
-	return s.s.Add(ctx, m)
+	add := func() (struct{}, error) {
+		err := s.s.Add(ctx, m)
+		return struct{}{}, err
+	}
+	_, err := backoff.Retry(ctx, add, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(s.cfg.DB.MaxRetries))
+
+	return err
 }
 
 func (s *Service) List(ctx context.Context, userID int) ([]Withdraw, error) {
