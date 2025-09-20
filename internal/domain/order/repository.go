@@ -53,7 +53,7 @@ func (s *Store) addOrder(ctx context.Context, order Order) (Order, error) {
 		if err != nil {
 			return Order{}, fmt.Errorf("fetch order error: %w", err)
 		}
-		return existing, ErrExistsOrder
+		return existing, ErrUniqueNum
 
 	case err != nil:
 		return Order{}, fmt.Errorf("failed to create order %s: %w", order.Number, err)
