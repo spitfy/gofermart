@@ -117,7 +117,7 @@ func (s *Service) AddOrder(ctx context.Context, userID int, number string) error
 		return s.s.addOrder(ctx, m)
 	}
 
-	o, err := backoff.Retry(ctx, addOrder, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(5))
+	o, err := backoff.Retry(ctx, addOrder, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(s.cfg.DB.MaxRetries))
 	if err != nil {
 		if errors.Is(err, ErrUniqueNum) {
 			if o.UserID != m.UserID {

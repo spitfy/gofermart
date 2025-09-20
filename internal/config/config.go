@@ -28,6 +28,7 @@ type Config struct {
 var (
 	SecretKey       = "SecRetKey"
 	AccrualInterval = 1
+	maxTries        = uint(3)
 )
 
 type Default struct {
@@ -37,6 +38,7 @@ type Default struct {
 	DatabaseURI     string
 	LogLevel        string
 	Secret          string
+	MaxTries        uint
 }
 
 func newDefault() (*Default, error) {
@@ -63,12 +65,16 @@ func newDefault() (*Default, error) {
 		DatabaseURI:     viper.GetString("database_uri"),
 		LogLevel:        viper.GetString("log_level"),
 		Secret:          viper.GetString("secret"),
+		MaxTries:        viper.GetUint("max_tries"),
 	}
 	if d.Secret == "" {
 		d.Secret = SecretKey
 	}
 	if d.AccrualInterval == 0 {
 		d.AccrualInterval = AccrualInterval
+	}
+	if d.MaxTries == 0 {
+		d.MaxTries = maxTries
 	}
 	return &d, nil
 }
@@ -81,10 +87,13 @@ func GetConfig() *Config {
 
 	conf := &Config{
 		Auth: auth.Config{
-			SecretKey: SecretKey,
+			SecretKey: d.Secret,
 		},
 		Accrual: accrual.Config{
 			Interval: d.AccrualInterval,
+		},
+		DB: db.Config{
+			MaxRetries: d.MaxTries,
 		},
 	}
 
