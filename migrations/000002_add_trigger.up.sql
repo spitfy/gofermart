@@ -1,3 +1,4 @@
+BEGIN;
 CREATE OR REPLACE FUNCTION update_user_balance() RETURNS TRIGGER AS $$
 BEGIN
     IF TG_TABLE_NAME = 'accruals' THEN
@@ -16,3 +17,4 @@ CREATE TRIGGER accrual_update_balance
 CREATE TRIGGER withdrawal_update_balance
     AFTER INSERT ON withdrawals
     FOR EACH ROW EXECUTE FUNCTION update_user_balance();
+COMMIT;

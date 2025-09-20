@@ -17,6 +17,7 @@ import (
 )
 
 func setupOrderTest(t *testing.T) (orderServicer *order.MockServicer, handler *Handler) {
+	t.Helper()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
@@ -239,14 +240,15 @@ func TestHandler_ListOrders(t *testing.T) {
 					assert.Equal(t, o.Number, got[i].Number)
 					assert.Equal(t, string(o.Status), got[i].Status)
 					assert.Equal(t, o.Accrual, got[i].Accrual)
-					assert.WithinDuration(t, o.CreatedAt, parseTime(got[i].UploadedAt), time.Second)
+					assert.WithinDuration(t, o.CreatedAt, parseTime(t, got[i].UploadedAt), time.Second)
 				}
 			}
 		})
 	}
 }
 
-func parseTime(s string) time.Time {
-	t, _ := time.Parse(time.RFC3339, s)
-	return t
+func parseTime(t *testing.T, s string) time.Time {
+	t.Helper()
+	gotTime, _ := time.Parse(time.RFC3339, s)
+	return gotTime
 }

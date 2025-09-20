@@ -2,6 +2,7 @@ package accrual
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -28,5 +29,8 @@ func (s *Store) Add(ctx context.Context, a Accrual) error {
 					VALUES ($1, $2, $3, (SELECT o.id FROM orders o WHERE o.number = $4))`,
 		a.UserID, a.Amount, a.Status, a.Number,
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to add accrual for user %d, order %s: %w", a.UserID, a.Number, err)
+	}
+	return nil
 }

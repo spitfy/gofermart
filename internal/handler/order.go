@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"mime"
 	"net/http"
 
@@ -47,6 +48,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	case err != nil:
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	default:
@@ -62,6 +64,7 @@ func (h *Handler) ListOrders(w http.ResponseWriter, r *http.Request) {
 	}
 	orders, err := h.s.OrderService.ListOrders(r.Context(), userID)
 	if err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -72,6 +75,7 @@ func (h *Handler) ListOrders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(orders); err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		http.Error(w, "encoding error", http.StatusInternalServerError)
 		return
 	}

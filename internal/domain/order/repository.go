@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -35,59 +36,63 @@ func (s *Store) addOrder(ctx context.Context, order Order) (Order, error) {
 		`INSERT INTO orders (user_id, number) VALUES ($1, $2)`,
 		order.UserID, order.Number,
 	)
+
 	var pgErr *pgconn.PgError
 	switch {
 	case errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation:
-		var userID int
-		var st status
+		var existing Order
 		err = s.pool.QueryRow(
 			ctx,
-			`SELECT o.user_id, coalesce(a.status, $1) 
-				   FROM orders o  
-				   		left join accruals a on a.order_id = o.id 
-				  WHERE number=$2`,
+			`SELECT o.user_id, COALESCE(a.status, $1) 
+			 FROM orders o  
+             LEFT JOIN accruals a ON a.order_id = o.id 
+             WHERE number = $2`,
 			StatusNew, order.Number,
-		).Scan(&userID, &st)
-		if err != nil {
-			return order, err
-		}
+		).Scan(&existing.UserID, &existing.Status)
 
-		return Order{
-			UserID: userID,
-			Status: st,
-		}, ErrUniqueNum
+		if err != nil {
+			return Order{}, fmt.Errorf("fetch order error: %w", err)
+		}
+		return existing, ErrUniqueNum
+
 	case err != nil:
-		return order, err
-	default:
-		return order, nil
+		return Order{}, fmt.Errorf("failed to create order %s: %w", order.Number, err)
 	}
+	return order, nil
 }
 
 func (s *Store) listOrders(ctx context.Context, userID int) ([]Order, error) {
 	rows, err := s.pool.Query(
 		ctx,
-		`SELECT coalesce(a.status, $1), o.number, coalesce(a.amount, 0), o.created_at 
-			   FROM orders o
-					left join accruals a on o.id = a.order_id
-			  WHERE o.user_id = $2`,
-		StatusNew, userID,
+		`SELECT 
+            COALESCE(a.status, $1) AS status,
+            o.number,
+            COALESCE(a.amount, 0) AS amount,
+            o.created_at
+		 FROM orders o
+         LEFT JOIN accruals a ON o.id = a.order_id
+		 WHERE o.user_id = $2`,
+		StatusNew,
+		userID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query user orders (userID: %d): %w", userID, err)
 	}
 	defer rows.Close()
 
 	var orders []Order
 	for rows.Next() {
 		var o Order
-		if err = rows.Scan(&o.Status, &o.Number, &o.Accrual, &o.CreatedAt); err != nil {
-			return nil, err
+		if err := rows.Scan(&o.Status, &o.Number, &o.Accrual, &o.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan order row: %w", err)
 		}
 		orders = append(orders, o)
 	}
-	if err = rows.Err(); err != nil {
-		return nil, err
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error after processing rows: %w", err)
 	}
+
 	return orders, nil
 }
 
@@ -100,18 +105,22 @@ func (s *Store) listForAccrual(ctx context.Context) ([]orderSend, error) {
 			  WHERE a.order_id IS NULL`,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query orders for accrual: %w", err)
 	}
+	defer rows.Close()
+
 	var orders []orderSend
 	for rows.Next() {
 		var o orderSend
 		if err = rows.Scan(&o.number, &o.userID); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan order row: %w", err)
 		}
 		orders = append(orders, o)
 	}
+
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error after iterating rows: %w", err)
 	}
+
 	return orders, nil
 }

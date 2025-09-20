@@ -15,6 +15,7 @@ import (
 )
 
 func setupWithdrawalTest(t *testing.T) (userServicer *withdraw.MockServicer, handler *Handler) {
+	t.Helper()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

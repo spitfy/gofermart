@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/spitfy/gofermart/internal/domain/withdraw"
@@ -28,6 +29,7 @@ func (h *Handler) WithdrawBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -42,6 +44,7 @@ func (h *Handler) ListWithdrawals(w http.ResponseWriter, r *http.Request) {
 	}
 	ws, err := h.s.WithdrawService.List(r.Context(), userID)
 	if err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -52,6 +55,7 @@ func (h *Handler) ListWithdrawals(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(ws); err != nil {
+		log.Printf("internal server error at %s %s: %v", r.Method, r.URL.Path, err)
 		http.Error(w, "encoding error", http.StatusInternalServerError)
 		return
 	}
