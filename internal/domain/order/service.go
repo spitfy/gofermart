@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff/v5"
+
 	"go.uber.org/atomic"
 
 	"github.com/spitfy/gofermart/internal/config"
@@ -110,14 +112,22 @@ func (s *Service) AddOrder(ctx context.Context, userID int, number string) error
 		UserID: userID,
 		Number: number,
 	}
-	o, err := s.s.addOrder(ctx, m)
-	if errors.Is(err, ErrUniqueNum) {
-		if o.UserID != m.UserID {
-			return ErrOrderAnotherUser
-		}
-		return ErrExistsOrder
+
+	addOrder := func() (Order, error) {
+		return s.s.addOrder(ctx, m)
 	}
-	return err
+
+	o, err := backoff.Retry(ctx, addOrder, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(5))
+	if err != nil {
+		if errors.Is(err, ErrUniqueNum) {
+			if o.UserID != m.UserID {
+				return ErrOrderAnotherUser
+			}
+			return ErrExistsOrder
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *Service) ListOrders(ctx context.Context, userID int) ([]Order, error) {

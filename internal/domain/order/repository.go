@@ -6,7 +6,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/cenkalti/backoff/v5"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spitfy/gofermart/internal/repository"
@@ -32,41 +31,23 @@ func NewStore(db *repository.DBStore) *Store {
 var ErrUniqueNum = errors.New("order number already exists")
 
 func (s *Store) addOrder(ctx context.Context, order Order) (Order, error) {
-	// Операция INSERT с повторными попытками
-	var insertErr error
-	insertOperation := func() (struct{}, error) {
-		_, err := s.pool.Exec(ctx,
-			`INSERT INTO orders (user_id, number) VALUES ($1, $2)`,
-			order.UserID, order.Number,
-		)
-		insertErr = err
-		return struct{}{}, err
-	}
-
-	_, err := backoff.Retry(ctx, insertOperation, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(5))
-	if err != nil {
-		return order, err
-	}
-
+	_, err := s.pool.Exec(ctx,
+		`INSERT INTO orders (user_id, number) VALUES ($1, $2)`,
+		order.UserID, order.Number,
+	)
 	var pgErr *pgconn.PgError
 	switch {
-	case errors.As(insertErr, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation:
+	case errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation:
 		var userID int
 		var st status
-
-		// Операция SELECT с повторными попытками
-		selectOperation := func() (struct{}, error) {
-			return struct{}{}, s.pool.QueryRow(
-				ctx,
-				`SELECT o.user_id, coalesce(a.status, $1) 
-				 FROM orders o  
-				 LEFT JOIN accruals a on a.order_id = o.id 
-				 WHERE number=$2`,
-				StatusNew, order.Number,
-			).Scan(&userID, &st)
-		}
-
-		_, err = backoff.Retry(ctx, selectOperation, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(5))
+		err = s.pool.QueryRow(
+			ctx,
+			`SELECT o.user_id, coalesce(a.status, $1) 
+				   FROM orders o  
+				   		left join accruals a on a.order_id = o.id 
+				  WHERE number=$2`,
+			StatusNew, order.Number,
+		).Scan(&userID, &st)
 		if err != nil {
 			return order, err
 		}
@@ -75,10 +56,8 @@ func (s *Store) addOrder(ctx context.Context, order Order) (Order, error) {
 			UserID: userID,
 			Status: st,
 		}, ErrUniqueNum
-
-	case insertErr != nil:
-		return order, insertErr
-
+	case err != nil:
+		return order, err
 	default:
 		return order, nil
 	}
@@ -88,8 +67,8 @@ func (s *Store) listOrders(ctx context.Context, userID int) ([]Order, error) {
 	rows, err := s.pool.Query(
 		ctx,
 		`SELECT coalesce(a.status, $1), o.number, coalesce(a.amount, 0), o.created_at 
-			  FROM orders o
-			  	LEFT JOIN accruals a on o.id = a.order_id
+			   FROM orders o
+					left join accruals a on o.id = a.order_id
 			  WHERE o.user_id = $2`,
 		StatusNew, userID,
 	)
@@ -117,7 +96,7 @@ func (s *Store) listForAccrual(ctx context.Context) ([]orderSend, error) {
 		ctx,
 		`SELECT o.number, o.user_id
 			  FROM orders o  
-			  	LEFT JOIN accruals a ON a.order_id = o.id 
+			  LEFT JOIN accruals a ON a.order_id = o.id 
 			  WHERE a.order_id IS NULL`,
 	)
 	if err != nil {
