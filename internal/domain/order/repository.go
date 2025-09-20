@@ -43,7 +43,7 @@ func (s *Store) addOrder(ctx context.Context, order Order) (Order, error) {
 		return struct{}{}, err
 	}
 
-	_, err := backoff.Retry(ctx, insertOperation, backoff.WithBackOff(backoff.NewExponentialBackOff()))
+	_, err := backoff.Retry(ctx, insertOperation, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(5))
 	if err != nil {
 		return order, err
 	}
@@ -66,7 +66,7 @@ func (s *Store) addOrder(ctx context.Context, order Order) (Order, error) {
 			).Scan(&userID, &st)
 		}
 
-		_, err = backoff.Retry(ctx, selectOperation, backoff.WithBackOff(backoff.NewExponentialBackOff()))
+		_, err = backoff.Retry(ctx, selectOperation, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(5))
 		if err != nil {
 			return order, err
 		}
