@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/cenkalti/backoff/v5"
 
@@ -63,7 +64,7 @@ func hashPassword(password string) (string, error) {
 	passwordBytes := []byte(password)
 	hashedBytes, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to generate password hash: %w", err)
 	}
 
 	return string(hashedBytes), nil

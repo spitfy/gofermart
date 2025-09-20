@@ -64,28 +64,35 @@ func (s *Store) addOrder(ctx context.Context, order Order) (Order, error) {
 func (s *Store) listOrders(ctx context.Context, userID int) ([]Order, error) {
 	rows, err := s.pool.Query(
 		ctx,
-		`SELECT coalesce(a.status, $1), o.number, coalesce(a.amount, 0), o.created_at 
-			   FROM orders o
-					left join accruals a on o.id = a.order_id
-			  WHERE o.user_id = $2`,
-		StatusNew, userID,
+		`SELECT 
+            COALESCE(a.status, $1) AS status,
+            o.number,
+            COALESCE(a.amount, 0) AS amount,
+            o.created_at
+		 FROM orders o
+         LEFT JOIN accruals a ON o.id = a.order_id
+		 WHERE o.user_id = $2`,
+		StatusNew,
+		userID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query user orders (userID: %d): %w", userID, err)
 	}
 	defer rows.Close()
 
 	var orders []Order
 	for rows.Next() {
 		var o Order
-		if err = rows.Scan(&o.Status, &o.Number, &o.Accrual, &o.CreatedAt); err != nil {
-			return nil, err
+		if err := rows.Scan(&o.Status, &o.Number, &o.Accrual, &o.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan order row: %w", err)
 		}
 		orders = append(orders, o)
 	}
-	if err = rows.Err(); err != nil {
-		return nil, err
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error after processing rows: %w", err)
 	}
+
 	return orders, nil
 }
 
@@ -98,18 +105,22 @@ func (s *Store) listForAccrual(ctx context.Context) ([]orderSend, error) {
 			  WHERE a.order_id IS NULL`,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query orders for accrual: %w", err)
 	}
+	defer rows.Close()
+
 	var orders []orderSend
 	for rows.Next() {
 		var o orderSend
 		if err = rows.Scan(&o.number, &o.userID); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan order row: %w", err)
 		}
 		orders = append(orders, o)
 	}
+
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error after iterating rows: %w", err)
 	}
+
 	return orders, nil
 }

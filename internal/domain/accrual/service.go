@@ -25,7 +25,11 @@ func (s *Service) Add(ctx context.Context, a Accrual) error {
 		err := s.s.Add(ctx, a)
 		return struct{}{}, err
 	}
-	_, err := backoff.Retry(ctx, add, backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(s.cfg.DB.MaxRetries))
+	_, err := backoff.Retry(
+		ctx,
+		add,
+		backoff.WithBackOff(backoff.NewExponentialBackOff()), backoff.WithMaxTries(s.cfg.DB.MaxRetries),
+	)
 
 	return err
 }
